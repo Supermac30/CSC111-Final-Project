@@ -78,7 +78,7 @@ class Game:
 
     def __init__(self, player1: Player, player2: Player, game_state: GameState) -> None:
         self._game_state = game_state
-        self.history = []
+        self.history = [game_state]
         self.player1 = player1
         self.player2 = player2
 
@@ -101,6 +101,7 @@ class Game:
             self.change_state(new_state)
 
             previous_state = new_state
+
         return self.winner(), self.history
 
     def legal_moves(self) -> list[GameState]:
@@ -129,7 +130,7 @@ class Game:
             if all(not new_state.equal(legal_move) for legal_move in self.legal_moves()):
                 raise MoveNotLegalError(str(new_state.previous_move))
 
-        self.history.append(self._game_state)
+        self.history.append(new_state)
         self._game_state = new_state
 
     def winner(self) -> Optional[Tuple[bool, int]]:
@@ -238,13 +239,13 @@ class GameTree:
 
         Raises a MoveError if move not in children
         """
-        children_states = [child.root.previous_move for child in self.children]
+        for child in self.children:
+            if child.root.previous_move == state.previous_move:
+                self.children = child.children
+                self.root = state
+                return
 
-        if state.previous_move not in children_states:
-            raise MoveNotLegalError(str(state.previous_move))
-
-        self.children = self.find_children(state)
-        self.root = state
+        raise MoveNotLegalError(str(state.previous_move))
 
 
 class MoveNotLegalError(Exception):

@@ -179,7 +179,7 @@ class TicTacToeGameState(GameState):
         pygame.draw.line(screen, (0, 0, 0), (2 * w // 3, 0), (2 * w // 3, h))
 
         # Draw the markers
-        font = pygame.font.SysFont('Calibri', 24)
+        font = pygame.font.SysFont('Calibri', 100)
         for x in range(3):
             for y in range(3):
                 piece = font.render(
@@ -190,8 +190,8 @@ class TicTacToeGameState(GameState):
                 screen.blit(
                     piece,
                     (
-                        (x + 0.5) * (w // 3),
-                        (y + 0.5) * (h // 3)
+                        (x + 0.5) * (w // 3) - 30,
+                        (y + 0.5) * (h // 3) - 30
                     )
                 )
         pygame.display.update()

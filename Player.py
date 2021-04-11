@@ -4,8 +4,8 @@ This file is Copyright (c) 2020 Mark Bedaywi
 """
 from __future__ import annotations
 import random
-
-from Game import GameState, Game, Player, GameTree
+from typing import Optional
+from Game import GameState, Player, GameTree, MoveNotLegalError
 
 
 class RandomPlayer(Player):
@@ -26,10 +26,10 @@ class MinimaxGameTree(GameTree):
         - children: Holds all subtrees of self connected to the root.
     """
     root: GameState
-    value: float
+    value: Optional[float]
     children: list[MinimaxGameTree]
 
-    def __init__(self, start_state: GameState, value: float = 0) -> None:
+    def __init__(self, start_state: GameState, value: Optional[float] = None) -> None:
         super().__init__(start_state)
         self.value = value
 
@@ -37,14 +37,12 @@ class MinimaxGameTree(GameTree):
         """Runs the minimax algorithm to update the value of each node in the tree.
 
         If depth is not negative, then minimax is only run up to the specified depth"""
-        if depth == 0:
+        if depth == 0 or self.root.winner() is not None:
             self.value = self.root.evaluate_position()
             return
 
         self.expand_root()
-        if self.children == []:  # No legal moves are available, and so the game is over
-            self.value = self.root.evaluate_position()
-            return
+        assert self.children != []
 
         # Finds the value of each child
         for child in self.children:
@@ -56,6 +54,35 @@ class MinimaxGameTree(GameTree):
         # Minimizes the value
         else:
             self.value = min([child.value for child in self.children])
+
+    def expand_tree(self, state: GameState) -> None:
+        """Add all children of state in self, if they are not already there.
+        Adds a MinimaxGameTree instead of the generic GameTree
+
+        Assumes that if some child is present, then all possible children are present.
+        """
+        if state == self.root:
+            if self.children == []:
+                self.children = [MinimaxGameTree(move) for move in self.root.legal_moves()]
+        else:
+            for child in self.children:
+                child.expand_tree(state)
+
+    def make_move(self, state: GameState) -> None:
+        """Makes a move, updating root and children
+        Updates the value of self.value
+
+        Raises a MoveError if move not in children
+        """
+        for child in self.children:
+            if child.root.previous_move == state.previous_move:
+                self.children = child.children
+                self.root = state
+                self.value = child.value
+
+                return
+
+        raise MoveNotLegalError(str(state.previous_move))
 
 
 class MinimaxPlayer(Player):
@@ -76,16 +103,24 @@ class MinimaxPlayer(Player):
         self.depth = depth
 
     def choose_move(self) -> GameState:
-        """Return the optimal move from the game state in self.game_tree.root"""
-        turn = self.game_tree.root.turn
-        if self.game_tree.value is None:
-            self.game_tree.find_values(self.depth)
+        """Return the optimal move from the game state in self.game_tree.root
 
-        # If it is player 1's turn, maximise
-        if turn:
-            best_move = max((state for state in self.game_tree.children), key=lambda n: n.value)
-        # Else, minimize
-        else:
-            best_move = min((state for state in self.game_tree.children), key=lambda n: n.value)
+        Assumes the game is not over, that is, assumes there are possible
+        legal moves from this position
+        """
+        turn = self.game_tree.root.turn
+        self.game_tree.find_values(self.depth)
+
+        possible_moves = self.game_tree.children
+        best_move = possible_moves[0]
+        for move in possible_moves:
+            # If it is player 1's turn, maximise
+            if move.value is None:
+                breakpoint()
+            if turn and move.value > best_move.value:
+                best_move = move
+            # If it is player 2's turn, minimise
+            elif not turn and move.value < best_move.value:
+                best_move = move
 
         return best_move.root

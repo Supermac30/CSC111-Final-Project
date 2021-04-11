@@ -38,10 +38,10 @@ def display_game(history: list[Game.GameState], screen_size: Tuple[int, int] = (
 def start() -> list[Game.GameState]:
     """A test function"""
     import TicTacToe
-    game_tree1 = Game.GameTree(TicTacToe.TicTacToeGameState())
-    game_tree2 = Game.GameTree(TicTacToe.TicTacToeGameState())
-    player1 = Player.RandomPlayer(1, game_tree1)
-    player2 = Player.RandomPlayer(2, game_tree2)
+    game_tree1 = Player.MinimaxGameTree(TicTacToe.TicTacToeGameState())
+    game_tree2 = Player.MinimaxGameTree(TicTacToe.TicTacToeGameState())
+    player1 = Player.MinimaxPlayer(1, game_tree1)
+    player2 = Player.MinimaxPlayer(2, game_tree2, 10)
 
     game = TicTacToe.TicTacToe(player1, player2, TicTacToe.TicTacToeGameState())
     return game.play_game()[1]
