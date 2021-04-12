@@ -85,6 +85,10 @@ class MonteCarloGameTree(GameTree):
         """Update the value of self by using the values of the children in the backpropagation phase"""
         raise NotImplementedError
 
+    def copy(self) -> MonteCarloGameTree:
+        """Return a copy of self"""
+        raise NotImplementedError
+
 
 class MonteCarloSimulationGameTree(MonteCarloGameTree):
     """A player that estimates the value of states by simulating possible games.
@@ -174,7 +178,8 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
         for _ in range(self.num_of_simulations):
             if self.simulate_game():
                 self.wins += 1
-            self.visits += 1
+
+        self.visits = self.num_of_simulations
 
         return self.wins / self.visits
 
@@ -203,12 +208,22 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
     def update_value(self) -> None:
         """Update the value of self by using the values of the children in the backpropagation phase"""
         self.wins = 0
-        self.visits = 0
+        self.visits = self.num_of_simulations
         for child in self.children:
             self.wins += child.wins
             self.visits += child.visits
 
         self.value = self.wins / self.visits
+
+    def copy(self) -> MonteCarloSimulationGameTree:
+        """Return a copy of self"""
+        return MonteCarloSimulationGameTree(
+            self.root.copy(),
+            self.is_player1,
+            self.repeat,
+            self.exploration_parameter,
+            self.value
+        )
 
 
 class MonteCarloSimulationPlayer(Player):
@@ -239,3 +254,7 @@ class MonteCarloSimulationPlayer(Player):
                 best_move = move
 
         return best_move.root
+
+    def copy(self) -> MonteCarloSimulationPlayer:
+        """Return a copy of self"""
+        return MonteCarloSimulationPlayer(self.game_tree.copy())

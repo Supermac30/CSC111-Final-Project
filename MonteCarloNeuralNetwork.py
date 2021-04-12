@@ -31,11 +31,10 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
 
     neural_network: MLPClassifier
 
-    def __init__(self, start_state: GameState, neural_network: MLPClassifier, repeat: int = 3,
-                 exploration_parameter: float = 1.4142, value: float = 0) -> None:
+    def __init__(self, start_state: GameState, neural_network: MLPClassifier, repeat: int = 5,
+                 exploration_parameter: float = 1, value: float = 0) -> None:
         super().__init__(start_state, repeat=repeat, exploration_parameter=exploration_parameter, value=value)
         self.neural_network = neural_network
-
 
     def expand_tree(self, state: GameState) -> None:
         """Add all children of state in self, if they are not already there.
@@ -104,6 +103,16 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
         total_children_values = sum([child.value for child in self.children])
         self.value = (self.value * self.visits + total_children_values) / (len(self.children) + self.visits)
 
+    def copy(self) -> MonteCarloNeuralNetwork:
+        """Return a copy of self"""
+        return MonteCarloNeuralNetwork(
+            self.root.copy(),
+            self.neural_network,
+            self.repeat,
+            self.exploration_parameter,
+            self.value
+        )
+
 
 class MonteCarloNeuralNetworkPlayer(Player):
     """A player that chooses the optimal move using a Monte Carlo search tree with simulation
@@ -138,6 +147,10 @@ class MonteCarloNeuralNetworkPlayer(Player):
 
         return best_move.root
 
+    def copy(self) -> MonteCarloNeuralNetworkPlayer:
+        """Return a copy of self"""
+        return MonteCarloNeuralNetworkPlayer(self.game_tree.copy(), self.is_player1)
+
 
 class NeuralNetworkPlayer(Player):
     """A Player that uses a trained Neural Network to choose the next moves
@@ -156,7 +169,7 @@ class NeuralNetworkPlayer(Player):
         self.neural_network = neural_network
 
     def choose_move(self) -> GameState:
-        """Chooses the optimal move as predicted by the trained neural network"""
+        """Choose the optimal move as predicted by the trained neural network"""
         best_move = self.game_tree.children[0]
         for move in self.game_tree.children:
             if self.is_player1:
@@ -169,8 +182,12 @@ class NeuralNetworkPlayer(Player):
         return best_move.root
 
     def state_value(self, state: GameState) -> float:
-        """Returns the predicted value of the state from the neural network"""
+        """Return the predicted value of the state from the neural network"""
         return self.neural_network.predict([state.vector_representation()])[0]
+
+    def copy(self) -> NeuralNetworkPlayer:
+        """Return a copy of self"""
+        return NeuralNetworkPlayer(self.game_tree, self.neural_network, self.is_player1)
 
 
 def train_neural_network_tic_tac_toe(num_games: int = 10) -> MLPClassifier:
@@ -180,7 +197,7 @@ def train_neural_network_tic_tac_toe(num_games: int = 10) -> MLPClassifier:
     """
     import TicTacToe
 
-    neural_net = MLPClassifier(hidden_layer_sizes=(9, 5))
+    neural_net = MLPClassifier(hidden_layer_sizes=6)
 
     # initializes the neural network arbitrarily
     initial_x = [TicTacToe.TicTacToeGameState().vector_representation()]

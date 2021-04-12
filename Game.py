@@ -20,6 +20,14 @@ class GameState:
     previous_move: Any
     game_type: Type[Game]
 
+    def change_state(self, new_state: GameState) -> bool:
+        """Change the current state to new_state.
+
+        Returns True if the state legally follows from self, and False otherwise.
+        """
+        move = new_state.previous_move
+        return self.make_move(move)
+
     def evaluate_position(self, heuristic_type: int = 0) -> float:
         """Return an evaluation of the current position. This is a float between -1 and 1
         where 0 is a tie, 1 is a win for player 1, and -1 is a win for player 2.
@@ -38,17 +46,12 @@ class GameState:
         """Return whether the next move is legal from the game state in self"""
         raise NotImplementedError
 
-    def make_move(self, move: Any) -> bool:
+    def make_move(self, move: Any, check_legal: bool = True) -> bool:
         """Play the move move if it is legal
 
+        check_legal can be set to False to save time.
+
         Returns True if the move is legal and False otherwise.
-        """
-        raise NotImplementedError
-
-    def change_state(self, new_state: GameState) -> bool:
-        """Change the current state to new_state.
-
-        Returns True if the state legally follows from self, and False otherwise.
         """
         raise NotImplementedError
 
@@ -106,12 +109,14 @@ class Game:
         self.player1 = player1
         self.player2 = player2
 
-    def play_game(self) -> Tuple[Tuple[bool, int], list[GameState]]:
+    def play_game(self) -> Tuple[Tuple[bool, bool], list[GameState]]:
         """Plays a single game.
 
         This returns a tuple
         where the first element is if there is a tie or a winner,
-        and the second is the id of the winner, and the history of moves
+        and the second is True if player 1 won.
+
+        Returns the history of moves as well.
         """
         if self._game_state.turn:
             player = 0
@@ -132,6 +137,20 @@ class Game:
 
         return self.winner(), self.history
 
+    def play_games(self, n: int) -> Tuple[float, float]:
+        """Play n games and return a Tuple where the first element is
+        the proportion of times player 1 wins, and the second is the proportion of times player 2 wins"""
+        player1_win = 0
+        player2_win = 0
+        for _ in range(n):
+            winner = self.copy().play_game()[0]
+            if winner[0]:
+                if winner[1]:
+                    player1_win += 1
+                else:
+                    player2_win += 1
+        return (player1_win / n, player2_win / n)
+
     def legal_moves(self) -> list[GameState]:
         """Return a list of legal moves from this position"""
         return self._game_state.legal_moves()
@@ -148,7 +167,7 @@ class Game:
         else:
             raise MoveNotLegalError(str(move))
 
-    def change_state(self, new_state: GameState, check_legal: bool = True) -> None:
+    def change_state(self, new_state: GameState, check_legal: bool = False) -> None:
         """Change the current game state.
 
         If check_legal is true, an error is raised if the move is not legal.
@@ -161,12 +180,16 @@ class Game:
         self.history.append(new_state)
         self._game_state = new_state
 
-    def winner(self) -> Optional[Tuple[bool, int]]:
+    def winner(self) -> Optional[Tuple[bool, bool]]:
         """Return a tuple, where the first value is true if some player won,
         and the second value is true if player 1 won,
 
         Return None if the game is not over."""
         return self._game_state.winner()
+
+    def copy(self) -> Game:
+        """Return a copy of self"""
+        raise NotImplementedError
 
 
 class Player:
@@ -203,6 +226,10 @@ class Player:
     def choose_move(self) -> GameState:
         """An abstract method that chooses a move to play using the game tree in self
         """
+        raise NotImplementedError
+
+    def copy(self) -> Player:
+        """Return a copy of self"""
         raise NotImplementedError
 
 
@@ -268,6 +295,10 @@ class GameTree:
                 return
 
         raise MoveNotLegalError(str(state.previous_move))
+
+    def copy(self) -> GameTree:
+        """Return a copy of self"""
+        raise NotImplementedError
 
 
 class MoveNotLegalError(Exception):

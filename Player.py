@@ -16,6 +16,10 @@ class RandomPlayer(Player):
 
         return random.choice(possible_moves)
 
+    def copy(self) -> RandomPlayer:
+        """Return a copy of self"""
+        return RandomPlayer(self.game_tree.copy())
+
 
 class MinimaxGameTree(GameTree):
     """A GameTree that stores the value of the root for the purpose of minimax
@@ -124,6 +128,10 @@ class MinimaxGameTree(GameTree):
 
         raise MoveNotLegalError(str(state.previous_move))
 
+    def copy(self) -> MinimaxGameTree:
+        """Return a copy of self"""
+        return MinimaxGameTree(self.root.copy(), self.value)
+
 
 class MinimaxPlayer(Player):
     """A player that chooses the optimal move using the minimax algorithm
@@ -159,3 +167,7 @@ class MinimaxPlayer(Player):
                 best_move = move
 
         return best_move.root
+
+    def copy(self) -> MinimaxPlayer:
+        """Return a copy of self"""
+        return MinimaxPlayer(self.game_tree.copy(), self.depth)
