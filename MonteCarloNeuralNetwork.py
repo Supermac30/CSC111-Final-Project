@@ -31,7 +31,7 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
 
     neural_network: MLPClassifier
 
-    def __init__(self, start_state: GameState, neural_network: MLPClassifier, repeat: int = 5,
+    def __init__(self, start_state: GameState, neural_network: MLPClassifier, repeat: int = 3,
                  exploration_parameter: float = 1, value: float = 0) -> None:
         super().__init__(start_state, repeat=repeat, exploration_parameter=exploration_parameter, value=value)
         self.neural_network = neural_network
@@ -124,8 +124,12 @@ class MonteCarloNeuralNetworkPlayer(Player):
     game_tree: MonteCarloNeuralNetwork
     is_player1: bool
 
-    def __init__(self, game_tree: MonteCarloNeuralNetwork, is_player1: bool) -> None:
-        super().__init__(game_tree)
+    def __init__(self, start_state: GameState, neural_network: MLPClassifier,
+                 is_player1: bool, game_tree: MonteCarloNeuralNetwork = None) -> None:
+        if game_tree is not None:
+            self.game_tree = game_tree
+        else:
+            self.game_tree = MonteCarloNeuralNetwork(start_state, neural_network)
         self.is_player1 = is_player1
 
     def choose_move(self) -> GameState:
@@ -149,7 +153,8 @@ class MonteCarloNeuralNetworkPlayer(Player):
 
     def copy(self) -> MonteCarloNeuralNetworkPlayer:
         """Return a copy of self"""
-        return MonteCarloNeuralNetworkPlayer(self.game_tree.copy(), self.is_player1)
+        return MonteCarloNeuralNetworkPlayer(self.game_tree.root, self.game_tree.neural_network,
+                                             self.is_player1, self.game_tree.copy())
 
 
 class NeuralNetworkPlayer(Player):
@@ -163,8 +168,12 @@ class NeuralNetworkPlayer(Player):
     neural_network: MLPClassifier
     is_player1: bool
 
-    def __init__(self, game_tree: GameTree, neural_network: MLPClassifier, is_player1: bool) -> None:
-        super().__init__(game_tree)
+    def __init__(self, start_state: GameState, neural_network: MLPClassifier,
+                 is_player1: bool, game_tree: GameTree = None) -> None:
+        if game_tree is not None:
+            self.game_tree = game_tree
+        else:
+            self.game_tree = GameTree(start_state)
         self.is_player1 = is_player1
         self.neural_network = neural_network
 
@@ -187,7 +196,7 @@ class NeuralNetworkPlayer(Player):
 
     def copy(self) -> NeuralNetworkPlayer:
         """Return a copy of self"""
-        return NeuralNetworkPlayer(self.game_tree, self.neural_network, self.is_player1)
+        return NeuralNetworkPlayer(self.game_tree.root, self.neural_network, self.is_player1, self.game_tree)
 
 
 def train_neural_network_tic_tac_toe(num_games: int = 10) -> MLPClassifier:
@@ -215,11 +224,9 @@ def update_neural_network_tic_tac_toe(neural_net: MLPClassifier) -> None:
     """A helper function that has neural_net play a game against itself, then learn"""
     import TicTacToe
     # set up the game
-    game_tree1 = MonteCarloNeuralNetwork(TicTacToe.TicTacToeGameState(), neural_net)
-    game_tree2 = MonteCarloNeuralNetwork(TicTacToe.TicTacToeGameState(), neural_net)
 
-    player1 = MonteCarloNeuralNetworkPlayer(game_tree1, True)
-    player2 = MonteCarloNeuralNetworkPlayer(game_tree2, False)
+    player1 = MonteCarloNeuralNetworkPlayer(TicTacToe.TicTacToeGameState(), neural_net, True)
+    player2 = MonteCarloNeuralNetworkPlayer(TicTacToe.TicTacToeGameState(), neural_net, False)
 
     game = TicTacToe.TicTacToe(player1, player2, TicTacToe.TicTacToeGameState())
 
@@ -246,10 +253,8 @@ def test_tic_tac_toe_neural_network(neural_network: MLPClassifier, is_player1: b
     import TicTacToe
     import Player
 
-    game_tree1 = MonteCarloNeuralNetwork(TicTacToe.TicTacToeGameState(), neural_network)
-    game_tree2 = Player.MinimaxGameTree(TicTacToe.TicTacToeGameState())
-    player1 = MonteCarloNeuralNetworkPlayer(game_tree1, is_player1)
-    player2 = Player.RandomPlayer(game_tree2)
+    player1 = MonteCarloNeuralNetworkPlayer(TicTacToe.TicTacToeGameState(), neural_network, is_player1)
+    player2 = Player.RandomPlayer(TicTacToe.TicTacToeGameState())
 
     if is_player1:
         game = TicTacToe.TicTacToe(player1, player2, TicTacToe.TicTacToeGameState())

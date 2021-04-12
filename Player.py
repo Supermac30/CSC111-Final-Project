@@ -10,6 +10,12 @@ from Game import GameState, Player, GameTree, MoveNotLegalError
 
 class RandomPlayer(Player):
     """A player that makes random moves for the purpose of testing"""
+    def __init__(self, start_state: GameState, game_tree: GameTree = None):
+        if game_tree is not None:
+            self.game_tree = game_tree
+        else:
+            self.game_tree = GameTree(start_state)
+
     def choose_move(self) -> GameState:
         """Return a random move from the game state"""
         possible_moves = [child.root for child in self.game_tree.children]
@@ -18,7 +24,7 @@ class RandomPlayer(Player):
 
     def copy(self) -> RandomPlayer:
         """Return a copy of self"""
-        return RandomPlayer(self.game_tree.copy())
+        return RandomPlayer(self.game_tree.root, self.game_tree.copy())
 
 
 class MinimaxGameTree(GameTree):
@@ -143,9 +149,12 @@ class MinimaxPlayer(Player):
     game_tree: MinimaxGameTree
     depth: int
 
-    def __init__(self, game_tree: MinimaxGameTree, depth: int = -1) -> None:
-        super().__init__(game_tree)
+    def __init__(self, start_state: GameState, game_tree: MinimaxGameTree = None, depth: int = -1) -> None:
         self.depth = depth
+        if game_tree is not None:
+            self.game_tree = game_tree
+        else:
+            self.game_tree = MinimaxGameTree(start_state)
 
     def choose_move(self) -> GameState:
         """Return the optimal move from the game state in self.game_tree.root
@@ -170,4 +179,4 @@ class MinimaxPlayer(Player):
 
     def copy(self) -> MinimaxPlayer:
         """Return a copy of self"""
-        return MinimaxPlayer(self.game_tree.copy(), self.depth)
+        return MinimaxPlayer(self.game_tree.root, self.game_tree.copy(), self.depth)

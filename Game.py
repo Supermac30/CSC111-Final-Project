@@ -200,9 +200,6 @@ class Player:
     """
     game_tree: GameTree
 
-    def __init__(self, game_tree: GameTree) -> None:
-        self.game_tree = game_tree
-
     def make_move(self, opponent_move: Optional[GameState]) -> GameState:
         """Make a move from the current game state and previous move made by the
         opponent, and update the game tree.

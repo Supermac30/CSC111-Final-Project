@@ -41,15 +41,9 @@ def start() -> list[Game.GameState]:
     """A test function"""
     import time
     b = time.time()
-    game_tree1 = MonteCarloSimulation.MonteCarloSimulationGameTree(
-        TicTacToe.TicTacToeGameState(),
-        True,
-    )
-    game_tree2 = Player.MinimaxGameTree(
-        TicTacToe.TicTacToeGameState(),
-    )
-    player1 = MonteCarloSimulation.MonteCarloSimulationPlayer(game_tree1)
-    player2 = Player.RandomPlayer(game_tree2)
+
+    player1 = MonteCarloSimulation.MonteCarloSimulationPlayer(TicTacToe.TicTacToeGameState(), True)
+    player2 = Player.RandomPlayer(TicTacToe.TicTacToeGameState())
 
     game = TicTacToe.TicTacToe(player1, player2, TicTacToe.TicTacToeGameState())
     x = game.play_game()[1]

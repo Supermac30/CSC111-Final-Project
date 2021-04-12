@@ -194,10 +194,8 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
                 return False
             return winner[1] == self.is_player1
 
-        game_tree1 = GameTree(self.root.copy())
-        game_tree2 = GameTree(self.root.copy())
-        random_player1 = RandomPlayer(game_tree1)
-        random_player2 = RandomPlayer(game_tree2)
+        random_player1 = RandomPlayer(self.root.copy())
+        random_player2 = RandomPlayer(self.root.copy())
         game = self.root.game_type(random_player1, random_player2, self.root.copy())
 
         winner = game.play_game()[0]
@@ -237,8 +235,11 @@ class MonteCarloSimulationPlayer(Player):
     """
     game_tree: MonteCarloSimulationGameTree
 
-    def __init__(self, game_tree: MonteCarloSimulationGameTree) -> None:
-        super().__init__(game_tree)
+    def __init__(self, start_state: GameState, is_player1: bool, game_tree: MonteCarloSimulationGameTree = None) -> None:
+        if game_tree is not None:
+            self.game_tree = game_tree
+        else:
+            self.game_tree = MonteCarloSimulationGameTree(start_state, is_player1)
 
     def choose_move(self) -> GameState:
         """Return the optimal move from the game state in self.game_tree.root
@@ -257,4 +258,4 @@ class MonteCarloSimulationPlayer(Player):
 
     def copy(self) -> MonteCarloSimulationPlayer:
         """Return a copy of self"""
-        return MonteCarloSimulationPlayer(self.game_tree.copy())
+        return MonteCarloSimulationPlayer(self.game_tree.root, self.game_tree.is_player1, self.game_tree.copy())
