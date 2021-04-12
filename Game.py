@@ -3,7 +3,7 @@
 This file is Copyright (c) 2020 Mark Bedaywi
 """
 from __future__ import annotations
-from typing import Any, Optional, Tuple, Type
+from typing import Any, Optional, Tuple, Type, List
 
 import pygame
 
@@ -27,6 +27,11 @@ class GameState:
         heuristic_type is used when multiple different heuristics can be chosen from.
 
         When heuristic_type_type is set to 0, when the game is not over, a zero 0 is always returned."""
+        raise NotImplementedError
+
+    def vector_representation(self) -> List[float]:
+        """Return a unique vector representation of the game state
+        for the purpose of training Neural Networks"""
         raise NotImplementedError
 
     def is_legal(self, move: Any) -> bool:

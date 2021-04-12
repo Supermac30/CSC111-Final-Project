@@ -43,13 +43,13 @@ def start() -> list[Game.GameState]:
     b = time.time()
     game_tree1 = MonteCarloSimulation.MonteCarloSimulationGameTree(
         TicTacToe.TicTacToeGameState(),
-        False,
+        True,
     )
     game_tree2 = Player.MinimaxGameTree(
         TicTacToe.TicTacToeGameState(),
     )
-    player2 = MonteCarloSimulation.MonteCarloSimulationPlayer(game_tree1)
-    player1 = Player.RandomPlayer(game_tree2)
+    player1 = MonteCarloSimulation.MonteCarloSimulationPlayer(game_tree1)
+    player2 = Player.RandomPlayer(game_tree2)
 
     game = TicTacToe.TicTacToe(player1, player2, TicTacToe.TicTacToeGameState())
     x = game.play_game()[1]
@@ -57,4 +57,5 @@ def start() -> list[Game.GameState]:
     return x
 
 
-display_game(start())
+if __name__ == "__main__":
+    display_game(start())

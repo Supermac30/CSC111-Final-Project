@@ -1,6 +1,6 @@
 """Holds the TicTacToe Game"""
 from __future__ import annotations
-from typing import Optional, Tuple, Type
+from typing import Optional, Tuple, Type, List
 
 from Game import Game, GameState
 import pygame
@@ -31,6 +31,13 @@ class TicTacToeGameState(GameState):
         else:
             self.board = copy.deepcopy(game_state.board)
             self.turn = game_state.turn
+
+    def vector_representation(self) -> List[float]:
+        """Return the flattened board"""
+        vector = []
+        for row in self.board:
+            vector.extend(row)
+        return vector
 
     def is_legal(self, move: Tuple[int, int]) -> bool:
         """Return whether the next move is legal from the game state in self

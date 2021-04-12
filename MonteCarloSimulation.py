@@ -12,19 +12,26 @@ class MonteCarloGameTree(GameTree):
     """A player that makes decisions using a monte carlo tree search.
     Instance Attributes:
         - root: Holds the GameState in the root of self.
-        - value: Holds the value of the root state. This is None if the value has not been calculated yet.
+        - value: Holds the value of the root state. This is 0 if the value has not been calculated yet.
         - children: Holds all subtrees of self connected to the root.
         - repeat: Holds the number of times a Monte Carlo tree search is performed to estimate the value of root.
+        - exploration_parameter: Holds a value representing how much the AI should explore rather than exploit
+        - visits: Holds the number of times self has been simulated
     """
     root: GameState
     value: Optional[float]
     repeat: int
     children: list[MonteCarloSimulationGameTree]
+    exploration_parameter: float
+    visits: int
 
-    def __init__(self, start_state: GameState, repeat: int = 5, value: Optional[float] = None) -> None:
+    def __init__(self, start_state: GameState, repeat: int = 7,
+                 exploration_parameter: float = 1.4142, value: float = 0) -> None:
         super().__init__(start_state)
         self.value = value
         self.repeat = repeat
+        self.exploration_parameter = exploration_parameter
+        self.visits = 0
 
     def find_value(self) -> None:
         """Run a Monte Carlo tree search repeatedly to estimate the value the root."""
@@ -58,6 +65,16 @@ class MonteCarloGameTree(GameTree):
         Preconditions:
             - self.children != []
         """
+        explore = self.children[0]
+        for child in self.children:
+            if child.ucb(self.visits) > explore.ucb(self.visits):
+                explore = child
+
+        return explore
+
+    def ucb(self, visits_parent: int) -> float:
+        """Use the upper confidence bound to give a value
+        representing to what extent a state is worth exploring."""
         raise NotImplementedError
 
     def move_value(self) -> float:
@@ -77,35 +94,31 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
         - value: Holds the value of the root state. This is None if the value has not been calculated yet.
         - children: Holds all subtrees of self connected to the root.
         - repeat: Holds the number of times a Monte Carlo tree search is performed to estimate the value of root.
-
-        - game: Holds the game object representing the game being played
-        - is_player1: Is True if the player using the game tree is player 1, and False otherwise.
         - visits: Holds the number of times self has been simulated
-        - wins: Holds the number of times self wins a simulation
         - exploration_parameter: Holds a value representing the proportion of times the AI chooses to
             explore rather than exploit.
+
+        - is_player1: Is True if the player using the game tree is player 1, and False otherwise.
+        - wins: Holds the number of times self wins a simulation
     """
 
     root: GameState
     value: Optional[float]
     children: list[MonteCarloSimulationGameTree]
     repeat: int
+    exploration_parameter: float
+    visits: int
 
     is_player1: bool
-    visits: int
     wins: int
-    exploration_parameter: float
 
-    def __init__(self, start_state: GameState, is_player1: bool, repeat: int = 6,
+    def __init__(self, start_state: GameState, is_player1: bool, repeat: int = 5,
                  exploration_parameter: float = 1.4142, value: Optional[float] = None) -> None:
-        super().__init__(start_state, repeat, value)
+        super().__init__(start_state, repeat, exploration_parameter, value)
 
-        self.num_of_simulations = 4
-
+        self.num_of_simulations = 5
         self.is_player1 = is_player1
-        self.visits = 0
         self.wins = 0
-        self.exploration_parameter = exploration_parameter
 
     def expand_tree(self, state: GameState) -> None:
         """Add all children of state in self, if they are not already there.
@@ -118,7 +131,9 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
                 self.children = [
                     MonteCarloSimulationGameTree(
                         move,
-                        self.is_player1
+                        self.is_player1,
+                        self.repeat,
+                        self.exploration_parameter
                     ) for move in self.root.legal_moves()]
         else:
             for child in self.children:
@@ -135,26 +150,12 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
                 self.children = child.children
                 self.root = state
                 self.value = child.value
+                self.wins = child.wins
+                self.visits = child.visits
 
                 return
 
         raise MoveNotLegalError(str(state.previous_move))
-
-    def select_child(self) -> MonteCarloGameTree:
-        """Chooses which state to explore in the exploration phase.
-
-        Uses the upper confidence bound formula to choose which child should be searched.
-
-        Preconditions:
-            - self.children != []
-        """
-
-        explore = self.children[0]
-        for child in self.children:
-            if child.ucb(self.visits) > explore.ucb(self.visits):
-                explore = child
-
-        return explore
 
     def ucb(self, visits_parent: int) -> float:
         """A helper function returning the value used to check if a state is worth exploring,
