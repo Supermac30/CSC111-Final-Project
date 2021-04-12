@@ -18,11 +18,13 @@ class GameState:
     turn: bool
     previous_move: Any
 
-    def evaluate_position(self, hueristic_type: int = 0) -> float:
+    def evaluate_position(self, heuristic_type: int = 0) -> float:
         """Return an evaluation of the current position. This is a float between -1 and 1
-        where 0 is a tie, 1 is a win for
+        where 0 is a tie, 1 is a win for player 1, and -1 is a win for player 2.
 
-        huersitic_type is used when multiple different heuristics can be chosen from"""
+        heuristic_type is used when multiple different heuristics can be chosen from.
+
+        When heuristic_type_type is set to 0, when the game is not over, a zero 0 is always returned."""
         raise NotImplementedError
 
     def is_legal(self, move: Any) -> bool:
@@ -48,7 +50,11 @@ class GameState:
         raise NotImplementedError
 
     def legal_moves(self) -> list[GameState]:
-        """Return a list of all possible legal moves from self"""
+        """Return a list of all possible legal moves from self.
+
+        Moves that are more likely to be better should be returned first,
+        to help speed up the alpha-beta pruning.
+        """
         raise NotImplementedError
 
     def equal(self, game_state: GameState):
@@ -57,6 +63,10 @@ class GameState:
 
     def display(self, screen: pygame.display) -> None:
         """An abstract method for displaying the current game state"""
+        raise NotImplementedError
+
+    def __str__(self) -> str:
+        """A unique string representation of the state for memoization and debugging"""
         raise NotImplementedError
 
 

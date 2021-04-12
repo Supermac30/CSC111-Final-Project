@@ -67,7 +67,7 @@ class TicTacToeGameState(GameState):
         move = new_state.previous_move
         return self.make_move(move)
 
-    def evaluate_position(self, hueristic_type: int = 0) -> float:
+    def evaluate_position(self, heuristic_type: int = 0) -> float:
         """Return an evaluation of the current position.
         There is only one type of heuristic:
 
@@ -156,6 +156,7 @@ class TicTacToeGameState(GameState):
         return self.board == game_state.board
 
     def __str__(self) -> str:
+        """A unique string representation of the board for memoization and debugging."""
         state_string = ""
         for row in self.board:
             for piece in row:
