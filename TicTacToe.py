@@ -1,6 +1,6 @@
 """Holds the TicTacToe Game"""
 from __future__ import annotations
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Type
 
 from Game import Game, GameState
 import pygame
@@ -14,13 +14,16 @@ class TicTacToeGameState(GameState):
         - game_state: A 2D 3x3 list storing the object in each position in the game.
             A 1 is placed if 'X' is in the location, 0 if it is a 'O' and -1 if it is empty.
         - turn: Stores the turn of the player. This is true if it is X's turn and False otherwise.
+        - game_type: Holds the type of game.
         - previous_move: Stores the previous move made. This is None if no move has been made yet.
     """
     board: list[list[int]]
     turn: bool
+    game_type: Type[Game]
     previous_move: Optional[Tuple[int, int]]
 
     def __init__(self, game_state: Optional[TicTacToeGameState] = None) -> None:
+        self.game_type = TicTacToe
         self.previous_move = None
         if game_state is None:
             self.board = [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]]
@@ -69,14 +72,13 @@ class TicTacToeGameState(GameState):
 
     def evaluate_position(self, heuristic_type: int = 0) -> float:
         """Return an evaluation of the current position.
-        There is only one type of heuristic:
-
+        There is only the default heuristic for TicTacToe:
         1 is returned if X wins and -1 is returned if O wins. 0 is returned otherwise.
         """
         winner = self.winner()
-        if winner == 'X':
+        if winner == (True, True):
             return 1
-        elif winner == 'O':
+        elif winner == (True, False):
             return -1
         return 0
 
@@ -96,37 +98,38 @@ class TicTacToeGameState(GameState):
                     possible_moves.append(new_game)
         return possible_moves
 
-    def winner(self) -> Optional[str]:
-        """Return 'X' if X won, 'O' if O won, 'tie' if there is a tie, and None if the game is not over"""
+    def winner(self) -> Optional[Tuple[bool, bool]]:
+        """Return (True, True) if X won, (True, False) if O won,
+        (False, False) if there is a tie, and None if the game is not over."""
         # Checks vertical lines
         for i in range(3):
             if self.board[0][i] == self.board[1][i] == self.board[2][i]:
                 if self.board[0][i] == 1:
-                    return 'X'
+                    return (True, True)
                 elif self.board[0][i] == 0:
-                    return 'O'
+                    return (True, False)
 
         # Checks horizontal lines
         for i in range(3):
             if self.board[i][0] == self.board[i][1] == self.board[i][2]:
                 if self.board[i][0] == 1:
-                    return 'X'
+                    return (True, True)
                 elif self.board[i][0] == 0:
-                    return 'O'
+                    return (True, False)
 
         # Checks the forward diagonal
         if self.board[0][0] == self.board[1][1] == self.board[2][2]:
             if self.board[0][0] == 1:
-                return 'X'
+                return (True, True)
             elif self.board[0][0] == 0:
-                return 'O'
+                return (True, False)
 
         # Checks the backwards diagonal
         if self.board[0][2] == self.board[1][1] == self.board[2][0]:
             if self.board[0][2] == 1:
-                return 'X'
+                return (True, True)
             elif self.board[0][2] == 0:
-                return 'O'
+                return (True, False)
 
         is_over = all(
             self.board[i][j] != -1
@@ -135,7 +138,7 @@ class TicTacToeGameState(GameState):
         )
 
         if is_over:
-            return 'tie'
+            return (False, False)
         else:
             return None
 
@@ -191,11 +194,15 @@ class TicTacToeGameState(GameState):
                 screen.blit(
                     piece,
                     (
-                        (x + 0.5) * (w // 3) - 30,
-                        (y + 0.5) * (h // 3) - 30
+                        (y + 0.5) * (w // 3) - 30,
+                        (x + 0.5) * (h // 3) - 30
                     )
                 )
         pygame.display.update()
+
+    def copy(self) -> TicTacToeGameState:
+        """Return a copy of self"""
+        return TicTacToeGameState(self)
 
 
 class TicTacToe(Game):
@@ -212,18 +219,3 @@ class TicTacToe(Game):
     #   - _screen: Stores the pygame screen displaying the Game
     _game_state: TicTacToeGameState
     _screen: pygame.display
-
-    def winner(self) -> Optional[Tuple[bool, int]]:
-        """Return a tuple representing if a player won, and the id of the player who won.
-
-        None is returned if the game is not yet over.
-        """
-        winner = self._game_state.winner()
-        if winner == 'X':
-            return (True, self.player1.id)
-        elif winner == 'O':
-            return (True, self.player2.id)
-        elif winner == 'tie':
-            return (False, 0)
-        else:
-            return None

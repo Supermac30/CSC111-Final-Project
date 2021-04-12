@@ -4,7 +4,7 @@ This file is Copyright (c) 2020 Mark Bedaywi
 """
 from __future__ import annotations
 import random
-from typing import Optional
+from typing import Optional, Tuple, Dict
 from Game import GameState, Player, GameTree, MoveNotLegalError
 
 
@@ -24,31 +24,38 @@ class MinimaxGameTree(GameTree):
         - root: Holds the GameState in the root of self.
         - value: Holds the value of the root state. This is None if the value has not been calculated yet.
         - children: Holds all subtrees of self connected to the root.
-        - memoize: Holds the value of each state to avoid re-computation.
     """
     root: GameState
     value: Optional[float]
     children: list[MinimaxGameTree]
-    memoize: dict[str, float]
 
     def __init__(self, start_state: GameState, value: Optional[float] = None) -> None:
         super().__init__(start_state)
         self.value = value
-        self.memoize = {}
 
-    def find_value(self, depth: int = -1, alpha: float = -float('inf'), beta: float = float('inf')) -> None:
+    def find_value(self, memoize: Dict[Tuple[int, str], float], depth: int = -1,
+                   alpha: float = -float('inf'), beta: float = float('inf')) -> None:
         """Runs the minimax algorithm to update the value the root.
 
-        Uses alpha beta pruning to remove moves that are too bad (or good, if it is player 2s turn)
+        memoize stores the value of each state to avoid re-computation. It is a map
+        from a tuple storing the depth searched to and the string representation
+        of the state into the value calculated
+
+        Uses alpha beta pruning to remove moves that are too bad (or too good for player 1, if it is player 2s turn)
         to bother searching through, relative to moves already searched through.
 
         If depth is not negative, then minimax is only run up to the specified depth."""
 
-        str_repr = str(self.root)
+        # Storing the depth doesn't matter if a full search is done
+        if depth < 0:
+            state_repr = (-1, str(self.root))
+        # Stores the depth to recalculate to a greater depth if necessary
+        else:
+            state_repr = (depth, str(self.root))
 
-        # Doesn't recompute the value of the state
-        if str_repr in self.memoize:
-            self.value = self.memoize[str_repr]
+        # Doesn't recompute the value of the state if it has been seen before
+        if state_repr in memoize:
+            self.value = memoize[state_repr]
             return
 
         if depth == 0 or self.root.winner() is not None:
@@ -61,7 +68,7 @@ class MinimaxGameTree(GameTree):
         if self.root.turn:
             # Finds the value of each child
             for child in self.children:
-                child.find_value(depth - 1, alpha, beta)
+                child.find_value(memoize, depth - 1, alpha, beta)
 
                 alpha = max(alpha, child.value)
 
@@ -70,11 +77,12 @@ class MinimaxGameTree(GameTree):
                     return
 
             self.value = alpha
+
         # Minimizes the value
         else:
             # Finds the value of each child
             for child in self.children:
-                child.find_value(depth - 1, alpha, beta)
+                child.find_value(memoize, depth - 1, alpha, beta)
 
                 beta = min(beta, child.value)
 
@@ -85,7 +93,7 @@ class MinimaxGameTree(GameTree):
             self.value = beta
 
         # Memoizes the value of the state
-        self.memoize[str_repr] = self.value
+        memoize[state_repr] = self.value
 
     def expand_tree(self, state: GameState) -> None:
         """Add all children of state in self, if they are not already there.
@@ -121,17 +129,14 @@ class MinimaxPlayer(Player):
     """A player that chooses the optimal move using the minimax algorithm
 
     Instance Attributes:
-        - id: An integer storing the 'name' of the player for identification.
-            Useful for when the number of players is greater than two.
         - game_tree: Holds the GameTree object the player uses to make decisions
         - depth: Holds the depth that the search will be made to
     """
-    id: int
     game_tree: MinimaxGameTree
     depth: int
 
-    def __init__(self, id_num: int, game_tree: MinimaxGameTree, depth: int = -1) -> None:
-        super().__init__(id_num, game_tree)
+    def __init__(self, game_tree: MinimaxGameTree, depth: int = -1) -> None:
+        super().__init__(game_tree)
         self.depth = depth
 
     def choose_move(self) -> GameState:
@@ -141,14 +146,12 @@ class MinimaxPlayer(Player):
         legal moves from this position
         """
         turn = self.game_tree.root.turn
-        self.game_tree.find_value(self.depth)
 
-        possible_moves = self.game_tree.children
-        best_move = possible_moves[0]
-        for move in possible_moves:
+        best_move = self.game_tree.children[0]
+        for move in self.game_tree.children:
+            move.find_value({}, self.depth)
+
             # If it is player 1's turn, maximise
-            if move.value is None:
-                breakpoint()
             if turn and move.value > best_move.value:
                 best_move = move
             # If it is player 2's turn, minimise

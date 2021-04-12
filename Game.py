@@ -3,7 +3,7 @@
 This file is Copyright (c) 2020 Mark Bedaywi
 """
 from __future__ import annotations
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Type
 
 import pygame
 
@@ -14,9 +14,11 @@ class GameState:
     Instance Attributes:
         - turn: Is True if it is player 1's turn and False otherwise
         - previous_move: Holds the previous move made. This is None if no move has been made yet.
+        - game_type: Holds the type of game
     """
     turn: bool
     previous_move: Any
+    game_type: Type[Game]
 
     def evaluate_position(self, heuristic_type: int = 0) -> float:
         """Return an evaluation of the current position. This is a float between -1 and 1
@@ -45,8 +47,11 @@ class GameState:
         """
         raise NotImplementedError
 
-    def winner(self) -> str:
-        """Return a string detailing the winner, and None if the game is not over in the game_state in self."""
+    def winner(self) -> Optional[Tuple[bool, bool]]:
+        """Return a tuple, where the first value is true if some player won,
+        and the second value is true if player 1 won,
+
+        Return None if the game is not over."""
         raise NotImplementedError
 
     def legal_moves(self) -> list[GameState]:
@@ -67,6 +72,10 @@ class GameState:
 
     def __str__(self) -> str:
         """A unique string representation of the state for memoization and debugging"""
+        raise NotImplementedError
+
+    def copy(self) -> GameState:
+        """Return a copy of self"""
         raise NotImplementedError
 
 
@@ -99,7 +108,11 @@ class Game:
         where the first element is if there is a tie or a winner,
         and the second is the id of the winner, and the history of moves
         """
-        player = 0
+        if self._game_state.turn:
+            player = 0
+        else:
+            player = 1
+
         previous_state = None
         while self.winner() is None:
             if player == 0:
@@ -118,7 +131,7 @@ class Game:
         """Return a list of legal moves from this position"""
         return self._game_state.legal_moves()
 
-    def make_move(self, move: Any, check_legal: bool = True) -> None:
+    def make_move(self, move: Any, check_legal: bool = False) -> None:
         """Change the current game state.
 
         If check_legal is true, an error is raised if the move is not legal.
@@ -144,28 +157,22 @@ class Game:
         self._game_state = new_state
 
     def winner(self) -> Optional[Tuple[bool, int]]:
-        """An abstract method returning a tuple where the first element is
-        true if the game has a winner and false if it has a tie.
-        The second element is the id of the player who won, or 0 if there is a tie.
+        """Return a tuple, where the first value is true if some player won,
+        and the second value is true if player 1 won,
 
-        None is returned if the game is not yet over.
-        """
-        raise NotImplementedError
+        Return None if the game is not over."""
+        return self._game_state.winner()
 
 
 class Player:
     """An abstract class storing player methods
 
     Instance Attributes:
-        - id: An integer storing the 'name' of the player for identification.
-            Useful for when the number of players is greater than two.
         - game_tree: Holds the GameTree object the player uses to make decisions
     """
-    id: int
     game_tree: GameTree
 
-    def __init__(self, id_num: int, game_tree: GameTree) -> None:
-        self.id = id_num
+    def __init__(self, game_tree: GameTree) -> None:
         self.game_tree = game_tree
 
     def make_move(self, opponent_move: Optional[GameState]) -> GameState:
@@ -180,8 +187,8 @@ class Player:
         if opponent_move is not None:
             self.game_tree.make_move(opponent_move)
 
-        # If there are no children of the root, add them
-        self.game_tree.expand_root()
+            # If there are no children of the root, add them
+            self.game_tree.expand_root()
 
         move_chosen = self.choose_move()
 

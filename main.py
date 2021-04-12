@@ -18,8 +18,6 @@ import Player
             - Using a random simulation
 """
 
-# TODO: Create a GUI for TicTacToe to test algorithms
-# TODO: Create a basic minimax player.
 # TODO: Implement 9 x 9 Go
 # TODO: Implement a Monte Carlo Search Tree
 # TODO: Implement a Neural Network to rank positions
