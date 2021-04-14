@@ -11,7 +11,7 @@ class ConnectFourGameState(GameState):
     """Stores the game state of a TicTacToe game
 
     Instance Attributes:
-        - n: The dimension of the board. Must be even.
+        - n: The dimension of the board. Must be at least 4.
         - board: A 2D nxn list storing the object in each position in the game.
             A 1 is placed if player 1's piece is in the location, 0 if it is player 2's piece and -1 if it is empty.
         - turn: Stores the turn of the player. This is true if it is X's turn and False otherwise.
@@ -25,6 +25,8 @@ class ConnectFourGameState(GameState):
     previous_move: Optional[int]
 
     def __init__(self, n: int = 6, game_state: Optional[ConnectFourGameState] = None) -> None:
+        assert n >= 4
+
         self.game_type = ConnectFour
         self.previous_move = None
         if game_state is None:
@@ -67,11 +69,14 @@ class ConnectFourGameState(GameState):
 
             placed_piece = False
             row = 0
-            while not placed_piece and row < self.n:
+            while not placed_piece and row < self.n - 1:
                 row += 1
                 if self.board[row][move] != -1:
                     self.board[row - 1][move] = piece
                     placed_piece = True
+
+            if not placed_piece:
+                self.board[-1][move] = piece
 
             if row == self.n:
                 self.board[-1][move] = piece
@@ -111,7 +116,38 @@ class ConnectFourGameState(GameState):
     def winner(self) -> Optional[Tuple[bool, bool]]:
         """Return (True, True) if Red won, (True, False) if Yellow won,
         (False, False) if there is a tie, and None if the game is not over."""
-        # TODO: Finish
+
+        # Check Horizontals
+        for row in range(self.n):
+            for column in range(self.n - 3):
+                if all(self.board[row][column + i] == 1 for i in range(4)):
+                    return (True, True)
+                if all(self.board[row][column + i] == 0 for i in range(4)):
+                    return (True, False)
+
+        # Check Verticals
+        for column in range(self.n):
+            for row in range(self.n - 3):
+                if all(self.board[row + i][column] == 1 for i in range(4)):
+                    return (True, True)
+                if all(self.board[row + i][column] == 0 for i in range(4)):
+                    return (True, False)
+
+        # Check Decreasing Diagonals
+        for column in range(self.n - 3):
+            for row in range(self.n - 3):
+                if all(self.board[row + i][column + i] == 1 for i in range(4)):
+                    return (True, True)
+                if all(self.board[row + i][column + i] == 0 for i in range(4)):
+                    return (True, False)
+
+        # Check Decreasing Diagonals
+        for column in range(4, self.n):
+            for row in range(self.n - 4):
+                if all(self.board[row + i][column - i] == 1 for i in range(4)):
+                    return (True, True)
+                if all(self.board[row + i][column - i] == 0 for i in range(4)):
+                    return (True, False)
 
         is_over = all(
             self.board[i][j] != -1
@@ -158,29 +194,30 @@ class ConnectFourGameState(GameState):
         """Display the current TicTacToe Board on screen"""
         w, h = screen.get_size()
 
-        # TODO: fix
-
         # Draw the lines on the board
-        pygame.draw.line(screen, (0, 0, 0), (0, h // 3), (w, h // 3))
-        pygame.draw.line(screen, (0, 0, 0), (0, 2 * h // 3), (w, 2 * h // 3))
-        pygame.draw.line(screen, (0, 0, 0), (w // 3, 0), (w // 3, h))
-        pygame.draw.line(screen, (0, 0, 0), (2 * w // 3, 0), (2 * w // 3, h))
+        for i in range(1, self.n):
+            pygame.draw.line(screen, (0, 0, 0), (0, h * i // self.n), (w, h * i // self.n))
+            pygame.draw.line(screen, (0, 0, 0), (w * i // self.n, 0), (w * i // self.n, h))
 
         # Draw the markers
-        font = pygame.font.SysFont('Calibri', 100)
-        for x in range(3):
-            for y in range(3):
-                piece = font.render(
-                    self.board_object(x, y),
-                    True,
-                    (0, 0, 0)
-                )
-                screen.blit(
-                    piece,
+        for x in range(self.n):
+            for y in range(self.n):
+                piece = self.board_object(x, y)
+                if piece == 'R':
+                    color = (255, 0, 0)
+                elif piece == 'Y':
+                    color = (255, 255, 0)
+                else:
+                    color = (255, 255, 255)
+
+                pygame.draw.circle(
+                    screen,
+                    color,
                     (
-                        (y + 0.5) * (w // 3) - 30,
-                        (x + 0.5) * (h // 3) - 30
-                    )
+                        (y + 0.5) * (w // self.n),
+                        (x + 0.5) * (h // self.n)
+                    ),
+                    h // (3 * self.n)
                 )
         pygame.display.update()
 

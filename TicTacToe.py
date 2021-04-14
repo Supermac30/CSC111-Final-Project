@@ -192,8 +192,8 @@ class TicTacToeGameState(GameState):
                 screen.blit(
                     piece,
                     (
-                        (y + 0.5) * (w // 3) - 30,
-                        (x + 0.5) * (h // 3) - 30
+                        (y + 0.3) * (w // 3),
+                        (x + 0.3) * (h // 3)
                     )
                 )
         pygame.display.update()

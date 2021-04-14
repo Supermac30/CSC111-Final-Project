@@ -4,6 +4,7 @@ from typing import Tuple
 import Player
 import Game
 import TicTacToe
+import ConnectFour
 import MonteCarloSimulation
 
 
@@ -42,10 +43,10 @@ def start() -> list[Game.GameState]:
     import time
     b = time.time()
 
-    player1 = MonteCarloSimulation.MonteCarloSimulationPlayer(TicTacToe.TicTacToeGameState(), True)
-    player2 = Player.RandomPlayer(TicTacToe.TicTacToeGameState())
+    player1 = MonteCarloSimulation.MonteCarloSimulationPlayer(ConnectFour.ConnectFourGameState(), True)
+    player2 = Player.RandomPlayer(ConnectFour.ConnectFourGameState())
 
-    game = TicTacToe.TicTacToe(player1, player2, TicTacToe.TicTacToeGameState())
+    game = ConnectFour.ConnectFour(player1, player2, ConnectFour.ConnectFourGameState())
     x = game.play_game()[1]
     print(time.time() - b)
     return x

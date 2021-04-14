@@ -24,7 +24,9 @@ class ReversiGameState(GameState):
     game_type: Type[Game]
     previous_move: Optional[Tuple[int, int]]
 
-    def __init__(self, n: int, game_state: Optional[ReversiGameState] = None) -> None:
+    def __init__(self, n: int = 6, game_state: Optional[ReversiGameState] = None) -> None:
+        assert n % 2 == 0
+
         self.n = n
 
         self.game_type = Reversi

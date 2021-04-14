@@ -31,8 +31,8 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
 
     neural_network: MLPClassifier
 
-    def __init__(self, start_state: GameState, neural_network: MLPClassifier, repeat: int = 3,
-                 exploration_parameter: float = 1, value: float = 0) -> None:
+    def __init__(self, start_state: GameState, neural_network: MLPClassifier, repeat: int = 2,
+                 exploration_parameter: float = 2, value: float = 0) -> None:
         super().__init__(start_state, repeat=repeat, exploration_parameter=exploration_parameter, value=value)
         self.neural_network = neural_network
 
@@ -206,7 +206,7 @@ def train_neural_network_tic_tac_toe(num_games: int = 10) -> MLPClassifier:
     """
     import TicTacToe
 
-    neural_net = MLPClassifier(hidden_layer_sizes=6)
+    neural_net = MLPClassifier(hidden_layer_sizes=3)
 
     # initializes the neural network arbitrarily
     initial_x = [TicTacToe.TicTacToeGameState().vector_representation()]
@@ -254,10 +254,74 @@ def test_tic_tac_toe_neural_network(neural_network: MLPClassifier, is_player1: b
     import Player
 
     player1 = MonteCarloNeuralNetworkPlayer(TicTacToe.TicTacToeGameState(), neural_network, is_player1)
-    player2 = Player.RandomPlayer(TicTacToe.TicTacToeGameState())
+    player2 = Player.MinimaxPlayer(TicTacToe.TicTacToeGameState(), depth=1)
 
     if is_player1:
         game = TicTacToe.TicTacToe(player1, player2, TicTacToe.TicTacToeGameState())
     else:
         game = TicTacToe.TicTacToe(player2, player1, TicTacToe.TicTacToeGameState())
+    GameGUI.display_game(game.play_game()[1])
+
+
+def train_neural_network_connect_four(num_games: int = 10) -> MLPClassifier:
+    """Trains a neural network to play Connect Four.
+
+    The AI plays against itself num_games times, continuously updating and improving.
+    """
+    import ConnectFour
+
+    neural_net = MLPClassifier(hidden_layer_sizes=(6, 6))
+
+    # initializes the neural network arbitrarily
+    initial_x = [ConnectFour.ConnectFourGameState().vector_representation()]
+    initial_y = [0]
+    neural_net.fit(initial_x, initial_y)
+
+    for i in range(num_games):
+        update_neural_network_connect_four(neural_net)
+        print(i)
+
+    return neural_net
+
+
+def update_neural_network_connect_four(neural_net: MLPClassifier) -> None:
+    """A helper function that has neural_net play a game against itself, then learn"""
+    import ConnectFour
+    # set up the game
+
+    player1 = MonteCarloNeuralNetworkPlayer(ConnectFour.ConnectFourGameState(), neural_net, True)
+    player2 = MonteCarloNeuralNetworkPlayer(ConnectFour.ConnectFourGameState(), neural_net, False)
+
+    game = ConnectFour.ConnectFour(player1, player2, ConnectFour.ConnectFourGameState())
+
+    # play the game
+    winner, history = game.play_game()
+
+    # train the neural network
+    x = [state.vector_representation() for state in history]
+
+    if not winner[0]:
+        state_value = 0
+    elif winner[1]:
+        state_value = 1
+    else:
+        state_value = -1
+
+    y = [state_value] * len(x)
+
+    neural_net.fit(x, y)
+
+
+def test_connect_four_neural_network(neural_network: MLPClassifier, is_player1: bool):
+    import GameGUI
+    import ConnectFour
+    import Player
+
+    player1 = MonteCarloNeuralNetworkPlayer(ConnectFour.ConnectFourGameState(), neural_network, is_player1)
+    player2 = Player.MinimaxPlayer(ConnectFour.ConnectFourGameState(), depth=1)
+
+    if is_player1:
+        game = ConnectFour.ConnectFour(player1, player2, ConnectFour.ConnectFourGameState())
+    else:
+        game = ConnectFour.ConnectFour(player2, player1, ConnectFour.ConnectFourGameState())
     GameGUI.display_game(game.play_game()[1])

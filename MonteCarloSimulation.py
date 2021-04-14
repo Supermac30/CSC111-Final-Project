@@ -116,11 +116,11 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
     is_player1: bool
     wins: int
 
-    def __init__(self, start_state: GameState, is_player1: bool, repeat: int = 5,
+    def __init__(self, start_state: GameState, is_player1: bool, repeat: int = 3,
                  exploration_parameter: float = 1.4142, value: Optional[float] = None) -> None:
         super().__init__(start_state, repeat, exploration_parameter, value)
 
-        self.num_of_simulations = 5
+        self.num_of_simulations = 2
         self.is_player1 = is_player1
         self.wins = 0
 
