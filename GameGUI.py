@@ -1,10 +1,14 @@
-"""Holds the GUI where games can be played"""
+"""Holds the GUI where games can be played
+
+This file is Copyright (c) 2020 Mark Bedaywi
+"""
 from typing import Tuple
 
 import Player
 import Game
 import TicTacToe
 import ConnectFour
+import Reversi
 import MonteCarloSimulation
 
 
@@ -43,13 +47,16 @@ def start() -> list[Game.GameState]:
     import time
     b = time.time()
 
-    player1 = MonteCarloSimulation.MonteCarloSimulationPlayer(ConnectFour.ConnectFourGameState(), True)
-    player2 = Player.RandomPlayer(ConnectFour.ConnectFourGameState())
+    start_state = Reversi.ReversiGameState()
 
-    game = ConnectFour.ConnectFour(player1, player2, ConnectFour.ConnectFourGameState())
-    x = game.play_game()[1]
+    player1 = Player.MinimaxPlayer(start_state.copy(), depth=1)
+    player2 = Player.MinimaxPlayer(start_state.copy(), depth=10)
+
+    game = Reversi.Reversi(player1, player2, start_state.copy())
+    x = game.play_game(True)
+    print(x[0])
     print(time.time() - b)
-    return x
+    return x[1]
 
 
 if __name__ == "__main__":

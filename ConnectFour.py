@@ -1,4 +1,7 @@
-"""Holds the Connect Four Game"""
+"""Holds the Connect Four Game
+
+This file is Copyright (c) 2020 Mark Bedaywi
+"""
 from __future__ import annotations
 from typing import Optional, Tuple, Type, List
 
@@ -202,10 +205,9 @@ class ConnectFourGameState(GameState):
         # Draw the markers
         for x in range(self.n):
             for y in range(self.n):
-                piece = self.board_object(x, y)
-                if piece == 'R':
+                if self.board[x][y] == 1:
                     color = (255, 0, 0)
-                elif piece == 'Y':
+                elif self.board[x][y] == 0:
                     color = (255, 255, 0)
                 else:
                     color = (255, 255, 255)

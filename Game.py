@@ -109,12 +109,14 @@ class Game:
         self.player1 = player1
         self.player2 = player2
 
-    def play_game(self) -> Tuple[Tuple[bool, bool], list[GameState]]:
+    def play_game(self, debug: bool = False) -> Tuple[Tuple[bool, bool], list[GameState]]:
         """Plays a single game.
 
         This returns a tuple
         where the first element is if there is a tie or a winner,
         and the second is True if player 1 won.
+
+        If debug is true, print each game state
 
         Returns the history of moves as well.
         """
@@ -134,6 +136,9 @@ class Game:
             self.change_state(new_state)
 
             previous_state = new_state
+
+            if debug:
+                print(previous_state)
 
         return self.winner(), self.history
 

@@ -1,4 +1,7 @@
-"""Holds the TicTacToe Game"""
+"""Holds the TicTacToe Game
+
+This file is Copyright (c) 2020 Mark Bedaywi
+"""
 from __future__ import annotations
 from typing import Optional, Tuple, Type, List
 

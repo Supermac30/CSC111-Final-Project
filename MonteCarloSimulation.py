@@ -1,4 +1,7 @@
-"""Holds the Monte Carlo Search Tree"""
+"""Holds the Monte Carlo Search Tree
+
+This file is Copyright (c) 2020 Mark Bedaywi
+"""
 from __future__ import annotations
 
 import math
@@ -17,6 +20,7 @@ class MonteCarloGameTree(GameTree):
         - repeat: Holds the number of times a Monte Carlo tree search is performed to estimate the value of root.
         - exploration_parameter: Holds a value representing how much the AI should explore rather than exploit
         - visits: Holds the number of times self has been simulated
+        - is_player1: Is true when the player using the game tree is player 1
     """
     root: GameState
     value: Optional[float]
@@ -24,10 +28,12 @@ class MonteCarloGameTree(GameTree):
     children: list[MonteCarloSimulationGameTree]
     exploration_parameter: float
     visits: int
+    is_player1: bool
 
-    def __init__(self, start_state: GameState, repeat: int = 7,
+    def __init__(self, start_state: GameState, is_player1: bool, repeat: int = 7,
                  exploration_parameter: float = 1.4142, value: float = 0) -> None:
         super().__init__(start_state)
+        self.is_player1 = is_player1
         self.value = value
         self.repeat = repeat
         self.exploration_parameter = exploration_parameter
@@ -102,6 +108,7 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
         - exploration_parameter: Holds a value representing the proportion of times the AI chooses to
             explore rather than exploit.
 
+        - num_of_simulations: The number of times each state is simulated when finding its value.
         - is_player1: Is True if the player using the game tree is player 1, and False otherwise.
         - wins: Holds the number of times self wins a simulation
     """
@@ -113,15 +120,15 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
     exploration_parameter: float
     visits: int
 
+    num_of_simulations: int
     is_player1: bool
     wins: int
 
-    def __init__(self, start_state: GameState, is_player1: bool, repeat: int = 3,
+    def __init__(self, start_state: GameState, is_player1: bool, repeat: int = 3, num_of_simulations: int = 2,
                  exploration_parameter: float = 1.4142, value: Optional[float] = None) -> None:
-        super().__init__(start_state, repeat, exploration_parameter, value)
+        super().__init__(start_state, is_player1, repeat, exploration_parameter, value)
 
-        self.num_of_simulations = 2
-        self.is_player1 = is_player1
+        self.num_of_simulations = num_of_simulations
         self.wins = 0
 
     def expand_tree(self, state: GameState) -> None:
@@ -137,6 +144,7 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
                         move,
                         self.is_player1,
                         self.repeat,
+                        self.num_of_simulations,
                         self.exploration_parameter
                     ) for move in self.root.legal_moves()]
         else:
@@ -219,6 +227,7 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
             self.root.copy(),
             self.is_player1,
             self.repeat,
+            self.num_of_simulations,
             self.exploration_parameter,
             self.value
         )

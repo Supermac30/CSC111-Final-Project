@@ -1,4 +1,7 @@
-"""Holds the Reversi Game"""
+"""Holds the Reversi Game
+
+This file is Copyright (c) 2020 Mark Bedaywi
+"""
 from __future__ import annotations
 from typing import Optional, Tuple, Type, List
 
@@ -49,15 +52,52 @@ class ReversiGameState(GameState):
             vector.extend(row)
         return vector
 
-    def is_legal(self, move: Tuple[int, int]) -> bool:
-        """Return whether the next move is legal from the game state in self
+    def is_legal(self, move: Tuple[int, int], direction: Tuple[int, int] = (0, 0)) -> bool:
+        """Return whether the next move is legal from the game state in self.
+
+        direction is a tuple representing which direction to check.
+        If this is (0, 0) all directions are checked.
 
         Preconditions:
-            - 0 <= move[0] <= 3
-            - 0 <= move[1] <= 3
+            - 0 <= move[0] <= self.n
+            - 0 <= move[1] <= self.n
+            - direction in {(0, 0), (1, 0), (-1, 0), (1, 1), (-1, 1), (1, -1), (-1, -1), (0, 1), (0, -1)}
         """
-        # TODO: finish
-        pass
+        if self.board[move[0]][move[1]] != -1:
+            return False
+
+        if direction == (0, 0):
+            possible_directions = {(1, 0), (-1, 0), (1, 1), (-1, 1), (1, -1), (-1, -1), (0, 1), (0, -1)}
+            return any(self.is_legal(move, new_direction) for new_direction in possible_directions)
+
+        if self.turn:
+            move_piece = 1
+        else:
+            move_piece = 0
+
+        check = (move[0] + direction[0], move[1] + direction[1])
+
+        # There has to exist a piece to capture for a move to be legal
+        if not self.in_bounds(check) or self.board[check[0]][check[1]] != 1 - move_piece:
+            return False
+
+        check = (move[0] + direction[0], move[1] + direction[1])
+
+        # Checks if there is no empty space before we reach our piece again
+        while self.in_bounds(check) and self.board[check[0]][check[1]] == 1 - move_piece:
+            check = (check[0] + direction[0], check[1] + direction[1])
+
+        # Return whether we eventually reach our piece again, that is whether our opponents pieces are
+        # sandwiched between ours, or if one side is surrounded with our piece and the other with the
+        # edge of the board or empty space.
+        if not self.in_bounds(check) or self.board[check[0]][check[1]] == -1:
+            return False
+        return True
+
+    def in_bounds(self, move: Tuple[int, int]):
+        """Check if the move is in the bounds of the game.
+        A helper function"""
+        return 0 <= move[0] <= self.n - 1 and 0 <= move[1] <= self.n - 1
 
     def make_move(self, move: Tuple[int, int], check_legal: bool = True) -> bool:
         """Play move. Returns False if move is not legal and True otherwise.
@@ -70,20 +110,45 @@ class ReversiGameState(GameState):
         """
         if not check_legal and self.is_legal(move):
             self.previous_move = move
+
+            possible_directions = {(1, 0), (-1, 0), (1, 1), (-1, 1), (1, -1), (-1, -1), (0, 1), (0, -1)}
+
+            for direction in possible_directions:
+                if self.is_legal(move, direction):
+                    self.reverse_direction(move, direction)
+
             if self.turn:
                 self.board[move[0]][move[1]] = 1
             else:
                 self.board[move[0]][move[1]] = 0
+
             self.turn = not self.turn
             return True
         else:
             return False
 
+    def reverse_direction(self, start: Tuple[int, int], direction: Tuple[int, int]) -> None:
+        """Reverse all pieces sandwiched between two white pieces if piece is 0, and two
+        black pieces if piece is 1, in the direction of direction.
+
+        Preconditions:
+            - self.is_legal(start, direction)
+        """
+        if self.turn:
+            piece = 1
+        else:
+            piece = 0
+
+        check = (start[0] + direction[0], start[1] + direction[1])
+        while self.board[check[0]][check[1]] != piece:
+            self.board[check[0]][check[1]] = piece
+            check = (check[0] + direction[0], check[1] + direction[1])
+
     def evaluate_position(self, heuristic_type: int = 0) -> float:
         """Return an evaluation of the current position.
 
         heuristic_type 0 is 1 is returned if X wins and -1 is returned if O wins. 0 is returned otherwise.
-        heuristic_type 1 returns the number of white pieces subtracted from the number of white pieces,
+        heuristic_type 1 returns the number of black pieces subtracted from the number of white pieces,
             normalised by (1 / self.n).
         """
         if heuristic_type == 0:
@@ -99,23 +164,18 @@ class ReversiGameState(GameState):
             for row in range(self.n):
                 for column in range(self.n):
                     piece = self.board[row][column]
-                    if piece == 1:
+                    if piece == 0:
                         num_white += 1
-                    elif piece == 0:
+                    elif piece == 1:
                         num_black += 1
 
             return (num_black - num_white) / self.n
 
     def legal_moves(self) -> list[GameState]:
         """Return all legal moves from this position"""
-
-        # Checks if the game is over
-        if self.winner() is not None:
-            return []
-
         possible_moves = []
-        for i in range(3):
-            for j in range(3):
+        for i in range(self.n):
+            for j in range(self.n):
                 if self.is_legal((i, j)):
                     new_game = ReversiGameState(self.n, self)
                     new_game.make_move((i, j), False)
@@ -125,18 +185,15 @@ class ReversiGameState(GameState):
     def winner(self) -> Optional[Tuple[bool, bool]]:
         """Return (True, True) if X won, (True, False) if O won,
         (False, False) if there is a tie, and None if the game is not over."""
-        # TODO
-
-        is_over = all(
-            self.board[i][j] != -1
-            for i in range(3)
-            for j in range(3)
-        )
-
-        if is_over:
-            return (False, False)
-        else:
+        if self.legal_moves() != []:
             return None
+
+        net_black = self.evaluate_position(1)
+        if net_black > 0:
+            return (True, True)
+        elif net_black < 0:
+            return (True, False)
+        return (False, False)
 
     def board_object(self, x, y) -> str:
         """Return a string representing the piece
@@ -144,9 +201,9 @@ class ReversiGameState(GameState):
         """
         piece = self.board[x][y]
         if piece == 1:
-            return 'X'
+            return 'B'
         elif piece == 0:
-            return 'O'
+            return 'W'
         else:
             return ''
 
@@ -169,38 +226,40 @@ class ReversiGameState(GameState):
         return state_string
 
     def display(self, screen: pygame.display) -> None:
-        """Display the current TicTacToe Board on screen"""
+        """Display the current Reversi Board on screen"""
         w, h = screen.get_size()
-
-        # TODO: fix
+        background_color = (222, 184, 135)
+        screen.fill(background_color)
 
         # Draw the lines on the board
-        pygame.draw.line(screen, (0, 0, 0), (0, h // 3), (w, h // 3))
-        pygame.draw.line(screen, (0, 0, 0), (0, 2 * h // 3), (w, 2 * h // 3))
-        pygame.draw.line(screen, (0, 0, 0), (w // 3, 0), (w // 3, h))
-        pygame.draw.line(screen, (0, 0, 0), (2 * w // 3, 0), (2 * w // 3, h))
+        for i in range(1, self.n):
+            pygame.draw.line(screen, (0, 0, 0), (0, h * i // self.n), (w, h * i // self.n))
+            pygame.draw.line(screen, (0, 0, 0), (w * i // self.n, 0), (w * i // self.n, h))
 
         # Draw the markers
-        font = pygame.font.SysFont('Calibri', 100)
-        for x in range(3):
-            for y in range(3):
-                piece = font.render(
-                    self.board_object(x, y),
-                    True,
-                    (0, 0, 0)
-                )
-                screen.blit(
-                    piece,
+        for x in range(self.n):
+            for y in range(self.n):
+                if self.board[x][y] == 1:
+                    color = (0, 0, 0)
+                elif self.board[x][y] == 0:
+                    color = (255, 255, 255)
+                else:
+                    color = background_color
+
+                pygame.draw.circle(
+                    screen,
+                    color,
                     (
-                        (y + 0.5) * (w // 3) - 30,
-                        (x + 0.5) * (h // 3) - 30
-                    )
+                        (y + 0.5) * (w // self.n),
+                        (x + 0.5) * (h // self.n)
+                    ),
+                    h // (3 * self.n)
                 )
         pygame.display.update()
 
     def copy(self) -> ReversiGameState:
         """Return a copy of self"""
-        return ReversiGameState(self)
+        return ReversiGameState(game_state=self)
 
 
 class Reversi(Game):
