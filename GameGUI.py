@@ -47,12 +47,12 @@ def start() -> list[Game.GameState]:
     import time
     b = time.time()
 
-    start_state = Reversi.ReversiGameState()
+    start_state = TicTacToe.TicTacToeGameState()
 
-    player1 = Player.MinimaxPlayer(start_state.copy(), depth=1)
-    player2 = Player.MinimaxPlayer(start_state.copy(), depth=10)
+    player2 = MonteCarloSimulation.MonteCarloSimulationPlayer(start_state.copy())
+    player1 = Player.MinimaxPlayer(start_state.copy())
 
-    game = Reversi.Reversi(player1, player2, start_state.copy())
+    game = TicTacToe.TicTacToe(player1, player2, start_state.copy())
     x = game.play_game(True)
     print(x[0])
     print(time.time() - b)

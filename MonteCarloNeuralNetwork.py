@@ -31,14 +31,13 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
     repeat: int
     exploration_parameter: float
     visits: int
-    is_player1: bool
 
     neural_network: MLPClassifier
 
-    def __init__(self, start_state: GameState, neural_network: MLPClassifier, is_player1: bool,
-                 repeat: int = 2, exploration_parameter: float = 2, value: float = 0) -> None:
-        super().__init__(start_state, is_player1,
-                         repeat=repeat, exploration_parameter=exploration_parameter, value=value)
+    def __init__(self, start_state: GameState, neural_network: MLPClassifier,
+                 repeat: int = 300, exploration_parameter: float = 1.4142, value: float = 0) -> None:
+        super().__init__(start_state, repeat=repeat,
+                         exploration_parameter=exploration_parameter, value=value)
         self.neural_network = neural_network
 
     def expand_tree(self, state: GameState) -> None:
@@ -52,7 +51,6 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
                 self.children = [MonteCarloNeuralNetwork(
                     move,
                     self.neural_network,
-                    self.is_player1,
                     repeat=self.repeat,
                     exploration_parameter=self.exploration_parameter
                 ) for move in self.root.legal_moves()]
@@ -84,41 +82,28 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
             * self.move_value()\
             * (math.sqrt(visits_parent) / (1 + self.visits))
 
-        # exploration_value is greater if the position is better for player 1
-        if not self.is_player1:
-            exploration_value *= -1
-
         return self.value + exploration_value
 
     def move_value(self) -> float:
         """Estimate the value of the root using the neural network.
 
-        If an end state is reached, then the actual reward is returned."""
-        self.visits += 1
-
+        Returns the true value if self is terminal
+        """
         winner = self.root.winner()
-        if winner is not None:
-            if not winner[0]:
-                return 0
-            if winner[1]:
-                return 1
-            else:
-                return -1
-
+        if self.root.winner() is not None:
+            if winner[0]:  # If there was not a tie
+                if winner[1] != self.root.turn:
+                    return 1
+                else:
+                    return 0
+            return 0.5
         return self.neural_network.predict([self.root.vector_representation()])[0]
-
-    def update_value(self) -> None:
-        """Update the value of self by using the values of the children in the backpropagation phase"""
-        self.visits = sum([child.visits for child in self.children])
-        total_children_values = sum([child.value for child in self.children])
-        self.value = (self.value * self.visits + total_children_values) / (len(self.children) + self.visits)
 
     def copy(self) -> MonteCarloNeuralNetwork:
         """Return a copy of self"""
         return MonteCarloNeuralNetwork(
             self.root.copy(),
             self.neural_network,
-            self.is_player1,
             self.repeat,
             self.exploration_parameter,
             self.value
@@ -140,7 +125,7 @@ class MonteCarloNeuralNetworkPlayer(Player):
         if game_tree is not None:
             self.game_tree = game_tree
         else:
-            self.game_tree = MonteCarloNeuralNetwork(start_state, neural_network, is_player1, repeat=repeat)
+            self.game_tree = MonteCarloNeuralNetwork(start_state, neural_network, repeat=repeat)
         self.is_player1 = is_player1
 
     def choose_move(self) -> GameState:
@@ -252,7 +237,7 @@ def update_neural_network(game: Type[Game], game_state: Type[GameState],
     elif winner[1]:
         state_value = 1
     else:
-        state_value = -1
+        state_value = 0.5
 
     y = [state_value] * len(x)
 
@@ -275,4 +260,4 @@ def test_neural_network(game: Type[Game], game_state: Type[GameState],
 
 
 import TicTacToe
-brain = train_neural_network(TicTacToe.TicTacToe, TicTacToe.TicTacToeGameState, 3, repeat=4, num_games=20)
+brain = train_neural_network(TicTacToe.TicTacToe, TicTacToe.TicTacToeGameState, 3, repeat=2, num_games=20)

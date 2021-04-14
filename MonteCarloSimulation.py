@@ -5,6 +5,7 @@ This file is Copyright (c) 2020 Mark Bedaywi
 from __future__ import annotations
 
 import math
+import random
 from typing import Optional
 
 from Player import RandomPlayer
@@ -20,20 +21,17 @@ class MonteCarloGameTree(GameTree):
         - repeat: Holds the number of times a Monte Carlo tree search is performed to estimate the value of root.
         - exploration_parameter: Holds a value representing how much the AI should explore rather than exploit
         - visits: Holds the number of times self has been simulated
-        - is_player1: Is true when the player using the game tree is player 1
     """
     root: GameState
-    value: Optional[float]
-    repeat: int
     children: list[MonteCarloSimulationGameTree]
-    exploration_parameter: float
+    value: Optional[float]
     visits: int
-    is_player1: bool
+    repeat: int
+    exploration_parameter: float
 
-    def __init__(self, start_state: GameState, is_player1: bool, repeat: int = 7,
+    def __init__(self, start_state: GameState, repeat: int = 10000,
                  exploration_parameter: float = 1.4142, value: float = 0) -> None:
         super().__init__(start_state)
-        self.is_player1 = is_player1
         self.value = value
         self.repeat = repeat
         self.exploration_parameter = exploration_parameter
@@ -44,26 +42,34 @@ class MonteCarloGameTree(GameTree):
         for _ in range(self.repeat):
             self.monte_carlo_tree_search()
 
-    def monte_carlo_tree_search(self) -> None:
-        """Run a Monte Carlo tree search to update the value the root."""
+    def monte_carlo_tree_search(self) -> float:
+        """Run a Monte Carlo tree search to update the value the root.
+
+        Return the value added to backpropagate up the tree.
+        """
         # Checks if self is a leaf
         if self.children != []:
             # Exploration phase
             explore_state = self.select_child()
-            explore_state.find_value()
+
+            # We change the reward from 1 to 0 or 0 to 1, as the player changes
+            reward = 1 - explore_state.monte_carlo_tree_search()
         else:
             # Expansion phase
             self.expand_root()
 
             # Simulation phase
-            for child in self.children:
-                child.value = child.move_value()
+            if self.children != []:
+                child = random.choice(self.children)
+                reward = child.move_value()
+            else:
+                reward = self.move_value()
 
         # backpropagation phase
-        if self.children == []:
-            self.value = self.root.evaluate_position()
-        else:
-            self.update_value()
+        self.value += reward
+        self.visits += 1
+
+        return reward
 
     def select_child(self) -> MonteCarloGameTree:
         """Chooses which state to explore in the exploration phase.
@@ -87,10 +93,6 @@ class MonteCarloGameTree(GameTree):
         """Estimate the value of the root by simulating possible games in the simulation phase"""
         raise NotImplementedError
 
-    def update_value(self) -> None:
-        """Update the value of self by using the values of the children in the backpropagation phase"""
-        raise NotImplementedError
-
     def copy(self) -> MonteCarloGameTree:
         """Return a copy of self"""
         raise NotImplementedError
@@ -107,10 +109,6 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
         - visits: Holds the number of times self has been simulated
         - exploration_parameter: Holds a value representing the proportion of times the AI chooses to
             explore rather than exploit.
-
-        - num_of_simulations: The number of times each state is simulated when finding its value.
-        - is_player1: Is True if the player using the game tree is player 1, and False otherwise.
-        - wins: Holds the number of times self wins a simulation
     """
 
     root: GameState
@@ -119,17 +117,6 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
     repeat: int
     exploration_parameter: float
     visits: int
-
-    num_of_simulations: int
-    is_player1: bool
-    wins: int
-
-    def __init__(self, start_state: GameState, is_player1: bool, repeat: int = 3, num_of_simulations: int = 2,
-                 exploration_parameter: float = 1.4142, value: Optional[float] = None) -> None:
-        super().__init__(start_state, is_player1, repeat, exploration_parameter, value)
-
-        self.num_of_simulations = num_of_simulations
-        self.wins = 0
 
     def expand_tree(self, state: GameState) -> None:
         """Add all children of state in self, if they are not already there.
@@ -142,9 +129,7 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
                 self.children = [
                     MonteCarloSimulationGameTree(
                         move,
-                        self.is_player1,
                         self.repeat,
-                        self.num_of_simulations,
                         self.exploration_parameter
                     ) for move in self.root.legal_moves()]
         else:
@@ -162,7 +147,6 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
                 self.children = child.children
                 self.root = state
                 self.value = child.value
-                self.wins = child.wins
                 self.visits = child.visits
 
                 return
@@ -174,60 +158,35 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
         given the number of times the parent was visited.
 
         Uses the Upper Confidence Bound formula, as described here: """
-        exploitation_value = self.wins / self.visits
+        if self.visits == 0:
+            return float("inf")
+
+        exploitation_value = self.value / self.visits
         exploration_value = self.exploration_parameter * math.sqrt(math.log(visits_parent) / self.visits)
 
         return exploration_value + exploitation_value
 
     def move_value(self) -> float:
-        """Estimate the value of the root by simulating possible games.
-        Updates self.wins and self.visits.
+        """"Play a game where players make random moves from self.
+        Return 1 if the winner is player 1 and 0 if it is player 2, and 0.5 if it is a tie
         """
-        for _ in range(self.num_of_simulations):
-            if self.simulate_game():
-                self.wins += 1
-
-        self.visits = self.num_of_simulations
-
-        return self.wins / self.visits
-
-    def simulate_game(self) -> bool:
-        """Play a game where players make random moves from self
-        and return whether the player in self won.
-        """
-        # There is no need to simulate if the game is over
-        winner = self.root.winner()
-        if winner is not None:
-            if not winner[0]:
-                return False
-            return winner[1] == self.is_player1
-
         random_player1 = RandomPlayer(self.root.copy())
         random_player2 = RandomPlayer(self.root.copy())
         game = self.root.game_type(random_player1, random_player2, self.root.copy())
 
         winner = game.play_game()[0]
         if winner[0]:  # If there was not a tie
-            return (winner[1] and self.is_player1) or (not winner[1] and not self.is_player1)
-        return False
-
-    def update_value(self) -> None:
-        """Update the value of self by using the values of the children in the backpropagation phase"""
-        self.wins = 0
-        self.visits = self.num_of_simulations
-        for child in self.children:
-            self.wins += child.wins
-            self.visits += child.visits
-
-        self.value = self.wins / self.visits
+            if winner[1] != self.root.turn:
+                return 1
+            else:
+                return 0
+        return 0.5
 
     def copy(self) -> MonteCarloSimulationGameTree:
         """Return a copy of self"""
         return MonteCarloSimulationGameTree(
             self.root.copy(),
-            self.is_player1,
             self.repeat,
-            self.num_of_simulations,
             self.exploration_parameter,
             self.value
         )
@@ -244,11 +203,11 @@ class MonteCarloSimulationPlayer(Player):
     """
     game_tree: MonteCarloSimulationGameTree
 
-    def __init__(self, start_state: GameState, is_player1: bool, game_tree: MonteCarloSimulationGameTree = None) -> None:
+    def __init__(self, start_state: GameState, game_tree: MonteCarloSimulationGameTree = None) -> None:
         if game_tree is not None:
             self.game_tree = game_tree
         else:
-            self.game_tree = MonteCarloSimulationGameTree(start_state, is_player1)
+            self.game_tree = MonteCarloSimulationGameTree(start_state)
 
     def choose_move(self) -> GameState:
         """Return the optimal move from the game state in self.game_tree.root
@@ -256,15 +215,22 @@ class MonteCarloSimulationPlayer(Player):
         Assumes the game is not over, that is, assumes there are possible
         legal moves from this position
         """
-        best_move = self.game_tree.children[0]
-        for move in self.game_tree.children:
-            move.find_value()
+        self.game_tree.find_value()
 
-            if move.value > best_move.value:
+        best_move = self.game_tree.children[0]
+        best_average_value = -float("inf")
+        for move in self.game_tree.children:
+            if move.visits == 0:
+                continue
+            average_value = move.value / move.visits
+
+            # If it is player 1's turn, maximise
+            if average_value > best_average_value:
                 best_move = move
+                best_average_value = best_move.value / best_move.visits
 
         return best_move.root
 
     def copy(self) -> MonteCarloSimulationPlayer:
         """Return a copy of self"""
-        return MonteCarloSimulationPlayer(self.game_tree.root, self.game_tree.is_player1, self.game_tree.copy())
+        return MonteCarloSimulationPlayer(self.game_tree.root, self.game_tree.copy())
