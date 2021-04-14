@@ -34,7 +34,7 @@ def display_game(history: list[Game.GameState], screen_size: Tuple[int, int] = (
                     position = max(0, position - 1)
                 elif event.key == pygame.K_RIGHT:
                     position = min(len(history) - 1, position + 1)
-        screen.fill((255, 255, 255))
+
         history[position].display(screen)
 
         pygame.display.flip()

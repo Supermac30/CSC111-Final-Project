@@ -257,6 +257,18 @@ class ReversiGameState(GameState):
                 )
         pygame.display.update()
 
+    def get_human_input(self, screen: pygame.display, click_loc: Optional[Tuple[int, int]]) -> Optional[GameState]:
+        """Return the game state after a valid move has been inputted by the user"""
+        if click_loc is None:
+            return None
+        w, h = screen.get_size()
+        position = ((self.n * click_loc[0]) // w, (self.n * click_loc[1]) // h)
+
+        new_game = ReversiGameState(self.n, self)
+        if new_game.make_move(position, False):
+            return new_game
+        return None
+
     def copy(self) -> ReversiGameState:
         """Return a copy of self"""
         return ReversiGameState(game_state=self)

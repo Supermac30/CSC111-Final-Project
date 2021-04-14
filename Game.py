@@ -15,10 +15,12 @@ class GameState:
         - turn: Is True if it is player 1's turn and False otherwise
         - previous_move: Holds the previous move made. This is None if no move has been made yet.
         - game_type: Holds the type of game
+        - board: Holds the board representing the game state
     """
     turn: bool
     previous_move: Any
     game_type: Type[Game]
+    board: list
 
     def change_state(self, new_state: GameState) -> bool:
         """Change the current state to new_state.
@@ -78,6 +80,13 @@ class GameState:
         """An abstract method for displaying the current game state"""
         raise NotImplementedError
 
+    def get_human_input(self, screen: pygame.display, click_loc: Optional[Tuple[int, int]]) -> Optional[GameState]:
+        """Return a game state after a click at location click_loc. If no click has been performed yet,
+        click_loc is set to None and None is returned.
+
+        If the click is at an invalid input, None is returned."""
+        raise NotImplementedError
+
     def __str__(self) -> str:
         """A unique string representation of the state for memoization and debugging"""
         raise NotImplementedError
@@ -97,6 +106,9 @@ class Game:
     """
     # Private Instance Attributes
     #   - game_state: Stores the current game state
+
+    # TODO: Remove redundant _game_state attribute
+
     _game_state: GameState
 
     history: list[GameState]
@@ -155,6 +167,49 @@ class Game:
                 else:
                     player2_win += 1
         return (player1_win / n, player2_win / n)
+
+    def play_with_human(self, is_player1: bool, screen: pygame.display) -> Tuple[Tuple[bool, bool], list[GameState]]:
+        """Play a game with a human as player 1 if is_player1 is True and
+        the human as player 2 otherwise.
+        """
+        if self._game_state.turn:
+            player = 0
+        else:
+            player = 1
+        self._game_state.display(screen)
+
+        previous_state = None
+        click_loc = None
+
+        while self.winner() is None:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    break
+                if event.type == pygame.MOUSEBUTTONUP:
+                    click_loc = pygame.mouse.get_pos()
+
+            if player == 0:
+                if is_player1:
+                    new_state = self._game_state.get_human_input(screen, click_loc)
+                else:
+                    new_state = self.player1.make_move(previous_state)
+
+            else:
+                if is_player1:
+                    new_state = self.player2.make_move(previous_state)
+                else:
+                    new_state = self._game_state.get_human_input(screen, click_loc)
+
+            # If a move has been made
+            if new_state is not None:
+                player = 1 - player  # change the player from 1 to 0 or vice versa
+                self.change_state(new_state)
+
+                new_state.display(screen)
+
+                previous_state = new_state
+
+        return self.winner(), self.history
 
     def legal_moves(self) -> list[GameState]:
         """Return a list of legal moves from this position"""

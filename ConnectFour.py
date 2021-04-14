@@ -223,6 +223,18 @@ class ConnectFourGameState(GameState):
                 )
         pygame.display.update()
 
+    def get_human_input(self, screen: pygame.display, click_loc: Optional[Tuple[int, int]]) -> Optional[GameState]:
+        """Return the game state after a valid move has been inputted by the user"""
+        if click_loc is None:
+            return None
+        w = screen.get_size()[0]
+        position = (self.n * click_loc[0]) // w
+
+        new_game = ConnectFourGameState(self.n, self)
+        if new_game.make_move(position, False):
+            return new_game
+        return None
+
     def copy(self) -> ConnectFourGameState:
         """Return a copy of self"""
         return ConnectFourGameState(self.n, self)
