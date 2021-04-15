@@ -29,7 +29,7 @@ class MonteCarloGameTree(GameTree):
     repeat: int
     exploration_parameter: float
 
-    def __init__(self, start_state: GameState, repeat: int = 10000,
+    def __init__(self, start_state: GameState, repeat: int = 2000,
                  exploration_parameter: float = 1.4142, value: float = 0) -> None:
         super().__init__(start_state)
         self.value = value
@@ -203,11 +203,11 @@ class MonteCarloSimulationPlayer(Player):
     """
     game_tree: MonteCarloSimulationGameTree
 
-    def __init__(self, start_state: GameState, game_tree: MonteCarloSimulationGameTree = None) -> None:
+    def __init__(self, start_state: GameState, game_tree: MonteCarloSimulationGameTree = None, repeat=500) -> None:
         if game_tree is not None:
             self.game_tree = game_tree
         else:
-            self.game_tree = MonteCarloSimulationGameTree(start_state)
+            self.game_tree = MonteCarloSimulationGameTree(start_state, repeat=repeat)
 
     def choose_move(self) -> GameState:
         """Return the optimal move from the game state in self.game_tree.root

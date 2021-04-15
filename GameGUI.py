@@ -34,7 +34,7 @@ def display_game(history: list[Game.GameState], screen_size: Tuple[int, int] = (
                     position = max(0, position - 1)
                 elif event.key == pygame.K_RIGHT:
                     position = min(len(history) - 1, position + 1)
-
+        screen.fill((255, 255, 255))
         history[position].display(screen)
 
         pygame.display.flip()
@@ -47,12 +47,12 @@ def start() -> list[Game.GameState]:
     import time
     b = time.time()
 
-    start_state = TicTacToe.TicTacToeGameState()
+    start_state = ConnectFour.ConnectFourGameState()
 
-    player2 = MonteCarloSimulation.MonteCarloSimulationPlayer(start_state.copy())
-    player1 = Player.MinimaxPlayer(start_state.copy())
+    player1 = MonteCarloSimulation.MonteCarloSimulationPlayer(start_state.copy(), repeat=1500)
+    player2 = MonteCarloSimulation.MonteCarloSimulationPlayer(start_state.copy(), repeat=2000)
 
-    game = TicTacToe.TicTacToe(player1, player2, start_state.copy())
+    game = ConnectFour.ConnectFour(player1, player2, start_state.copy())
     x = game.play_game(True)
     print(x[0])
     print(time.time() - b)

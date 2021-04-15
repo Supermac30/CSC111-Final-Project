@@ -168,15 +168,20 @@ class Game:
                     player2_win += 1
         return (player1_win / n, player2_win / n)
 
-    def play_with_human(self, is_player1: bool, screen: pygame.display) -> Tuple[Tuple[bool, bool], list[GameState]]:
+    def play_with_human(self, is_player1: bool, screen_size: Tuple[int, int] = (500, 500)) -> Tuple[Tuple[bool, bool], list[GameState]]:
         """Play a game with a human as player 1 if is_player1 is True and
         the human as player 2 otherwise.
         """
+        import pygame
+        pygame.init()
+        screen = pygame.display.set_mode(screen_size)
+
         if self._game_state.turn:
             player = 0
         else:
             player = 1
         self._game_state.display(screen)
+        pygame.display.flip()
 
         previous_state = None
         click_loc = None
@@ -200,6 +205,8 @@ class Game:
                 else:
                     new_state = self._game_state.get_human_input(screen, click_loc)
 
+            click_loc = None
+
             # If a move has been made
             if new_state is not None:
                 player = 1 - player  # change the player from 1 to 0 or vice versa
@@ -208,6 +215,7 @@ class Game:
                 new_state.display(screen)
 
                 previous_state = new_state
+            pygame.display.flip()
 
         return self.winner(), self.history
 

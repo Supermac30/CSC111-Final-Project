@@ -43,7 +43,7 @@ class MinimaxGameTree(GameTree):
         super().__init__(start_state)
         self.value = value
 
-    def find_value(self, memoize: Dict[Tuple[int, str], float], depth: int = -1,
+    def find_value(self, memoize: Dict[Tuple[int, str, float, float], float], depth: int = -1,
                    alpha: float = -float('inf'), beta: float = float('inf')) -> None:
         """Runs the minimax algorithm to update the value the root.
 
@@ -56,12 +56,18 @@ class MinimaxGameTree(GameTree):
 
         If depth is not negative, then minimax is only run up to the specified depth."""
 
+        # Note: We have to store the alpha and beta values when memoizing. This stumped me
+        # for a couple of hours as the AI would occasionally not make the optimal move,
+        # until I realized that the alpha and beta values depend on the surrounding moves,
+        # and since they can be different, it doesn't make sense to treat
+        # the stored values in the same way.
+
         # Storing the depth doesn't matter if a full search is done
         if depth < 0:
-            state_repr = (-1, str(self.root))
-        # Stores the depth to recalculate to a greater depth if necessary
+            state_repr = (-1, str(self.root), alpha, beta)
+        # Stores the depth so that less accurate results are never used
         else:
-            state_repr = (depth, str(self.root))
+            state_repr = (depth, str(self.root), alpha, beta)
 
         # Doesn't recompute the value of the state if it has been seen before
         if state_repr in memoize:
@@ -73,7 +79,6 @@ class MinimaxGameTree(GameTree):
             return
 
         self.expand_root()
-
         # Maximizes the value
         if self.root.turn:
             # Finds the value of each child
@@ -82,8 +87,12 @@ class MinimaxGameTree(GameTree):
 
                 alpha = max(alpha, child.value)
 
+                # If a better move has been seen before
                 if alpha >= beta:
                     self.value = beta
+
+                    # Memoizes the value of the state
+                    memoize[state_repr] = self.value
                     return
 
             self.value = alpha
@@ -96,8 +105,12 @@ class MinimaxGameTree(GameTree):
 
                 beta = min(beta, child.value)
 
+                # If a worse move has been seen before
                 if alpha >= beta:
                     self.value = alpha
+
+                    # Memoizes the value of the state
+                    memoize[state_repr] = self.value
                     return
 
             self.value = beta
@@ -145,12 +158,15 @@ class MinimaxPlayer(Player):
     Instance Attributes:
         - game_tree: Holds the GameTree object the player uses to make decisions
         - depth: Holds the depth that the search will be made to
+        - memoize: Holds the memoized values for states
     """
     game_tree: MinimaxGameTree
     depth: int
+    memoize: dict[Tuple[int, str, float, float], float]
 
     def __init__(self, start_state: GameState, game_tree: MinimaxGameTree = None, depth: int = -1) -> None:
         self.depth = depth
+        self.memoize = {}
         if game_tree is not None:
             self.game_tree = game_tree
         else:
@@ -166,7 +182,7 @@ class MinimaxPlayer(Player):
 
         best_move = self.game_tree.children[0]
         for move in self.game_tree.children:
-            move.find_value({}, self.depth)
+            move.find_value(self.memoize, self.depth)
 
             # If it is player 1's turn, maximise
             if turn and move.value > best_move.value:

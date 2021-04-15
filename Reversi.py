@@ -262,7 +262,7 @@ class ReversiGameState(GameState):
         if click_loc is None:
             return None
         w, h = screen.get_size()
-        position = ((self.n * click_loc[0]) // w, (self.n * click_loc[1]) // h)
+        position = ((self.n * click_loc[1]) // h, (self.n * click_loc[0]) // w)
 
         new_game = ReversiGameState(self.n, self)
         if new_game.make_move(position, False):

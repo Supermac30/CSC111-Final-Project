@@ -176,6 +176,7 @@ class TicTacToeGameState(GameState):
     def display(self, screen: pygame.display) -> None:
         """Display the current TicTacToe Board on screen"""
         w, h = screen.get_size()
+        screen.fill((255, 255, 255))
 
         # Draw the lines on the board
         pygame.draw.line(screen, (0, 0, 0), (0, h // 3), (w, h // 3))
@@ -206,7 +207,7 @@ class TicTacToeGameState(GameState):
         if click_loc is None:
             return None
         w, h = screen.get_size()
-        position = ((3 * click_loc[0]) // w, (3 * click_loc[1]) // h)
+        position = ((3 * click_loc[1]) // w, (3 * click_loc[0]) // h)
 
         new_game = TicTacToeGameState(self)
         if new_game.make_move(position, False):

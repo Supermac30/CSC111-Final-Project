@@ -144,9 +144,9 @@ class ConnectFourGameState(GameState):
                 if all(self.board[row + i][column + i] == 0 for i in range(4)):
                     return (True, False)
 
-        # Check Decreasing Diagonals
-        for column in range(4, self.n):
-            for row in range(self.n - 4):
+        # Check Increasing Diagonals
+        for column in range(3, self.n):
+            for row in range(self.n - 3):
                 if all(self.board[row + i][column - i] == 1 for i in range(4)):
                     return (True, True)
                 if all(self.board[row + i][column - i] == 0 for i in range(4)):
@@ -194,8 +194,9 @@ class ConnectFourGameState(GameState):
         return state_string
 
     def display(self, screen: pygame.display) -> None:
-        """Display the current TicTacToe Board on screen"""
+        """Display the current Connect Four Board on screen"""
         w, h = screen.get_size()
+        screen.fill((0, 0, 255))
 
         # Draw the lines on the board
         for i in range(1, self.n):
