@@ -5,36 +5,56 @@ This file is Copyright (c) 2020 Mark Bedaywi
 from __future__ import annotations
 
 import random
-from typing import Type, Optional
+from typing import Tuple
+import Reversi
 
 from Game import Player, GameTree, GameState
 
 
-class OpeningsGameTree(GameTree):
+class ReversiOpeningsGameTree(GameTree):
     """The game tree that uses game data to make moves by memorizing good moves"""
-    children: list[OpeningsGameTree]
+    children: list[ReversiOpeningsGameTree]
+    root: Reversi.ReversiGameState
 
-    def __init__(self, start_state: GameState) -> None:
+    def __init__(self, start_state: Reversi.ReversiGameState) -> None:
         super().__init__(start_state)
         self.build_tree()
 
     def build_tree(self) -> None:
         """Read the relevant data set and build the game tree in self"""
+        for i in range(1, 51):
+            filename = 'data/reversi_games/' + str(i) + '_w.txt'
+            file = open(filename)
+            lines = file.readlines()
+            moves = []
+            previous_player = 0
+            for line in lines:
+                values = [int(value) for value in line.split()]
+                # If a pass has been played
+                if values[0] == previous_player:
+                    moves.append(None)
+                else:
+                    previous_player = 1 - previous_player
 
-    def add_move_sequence(self, moves: list[list]) -> None:
+                moves.append((values[1], values[2]))
+
+            self.add_move_sequence(moves)
+
+    def add_move_sequence(self, moves: list[Tuple[int, int]]) -> None:
         """Add a sequence of moves to self.
 
         Preconditions:
-            - moves[0] is not the move in self
+            - self.root.make_move(moves[0], True) == True
         """
-        children_boards = [child.root.board for child in self.children]
-        if moves[0] in children_boards:
-            position = children_boards.index(moves[0])
+        possible_moves = [child.root.previous_move for child in self.children]
+        if moves[0] in possible_moves:
+            position = possible_moves.index(moves[0])
             child = self.children[position]
         else:
-            # TODO
-            child = GameState
-            pass
+            new_move = self.root.copy()
+            new_move.make_move(moves[0], False)
+            child = ReversiOpeningsGameTree(new_move)
+            self.children.append(child)
 
         child.add_move_sequence(moves[1:])
 
@@ -45,10 +65,11 @@ class OpeningsGameTree(GameTree):
 
     def copy(self) -> GameTree:
         """Return a copy of self"""
+        return ReversiOpeningsGameTree(self.root.copy())
 
 
-class OpeningsPlayer(Player):
-    """The player that plays the opening as long as possible,
+class ReversiOpeningsPlayer(Player):
+    """The player that plays the opening in Reversi as long as possible,
     before reverting to some other player.
 
     Instance Attributes:
@@ -57,16 +78,16 @@ class OpeningsPlayer(Player):
         - default_player: stores the player that will play
             once the opening is exhausted.
     """
-    start_state: GameState
-    game_tree: OpeningsGameTree
+    start_state: Reversi.ReversiGameState
+    game_tree: ReversiOpeningsGameTree
     default_player: Player
 
-    def __init__(self, start_state: GameState, default_player: Player,
-                 game_tree: OpeningsGameTree = None):
+    def __init__(self, start_state: Reversi.ReversiGameState, default_player: Player,
+                 game_tree: ReversiOpeningsGameTree = None):
         self.start_state = start_state
         self.default_player = default_player
         if game_tree is None:
-            self.game_tree = OpeningsGameTree(self.start_state)
+            self.game_tree = ReversiOpeningsGameTree(self.start_state)
         else:
             self.game_tree = game_tree
 
@@ -84,9 +105,9 @@ class OpeningsPlayer(Player):
         else:
             return random.choice(self.game_tree.children).root
 
-    def copy(self) -> OpeningsPlayer:
+    def copy(self) -> ReversiOpeningsPlayer:
         """Return a copy of self"""
-        return OpeningsPlayer(
+        return ReversiOpeningsPlayer(
             self.start_state,
             self.default_player,
             self.game_tree

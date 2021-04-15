@@ -2,7 +2,7 @@
 
 This file is Copyright (c) 2020 Mark Bedaywi
 """
-from typing import Type
+from typing import Type, Tuple
 import tkinter as tk
 
 import Game
@@ -14,6 +14,7 @@ import ConnectFour
 import Player
 import MonteCarloSimulation
 import MonteCarloNeuralNetwork
+import OpeningsPlayer
 
 
 class Menu(tk.Frame):
@@ -22,22 +23,34 @@ class Menu(tk.Frame):
     Instance Attributes:
         - game: The type of game that will be played
         - game_state: The type of game state that will be used
-        - player1: The type of player player 1 will be
-        - player2: The type of player player 2 will be
+        - player1_id: Stores an integer representing the type of player player 1 will be
+        - player2_id: Stores an integer representing the type of player player 2 will be
 
         - game_buttons: Holds the Tkinter buttons displaying games
         - player_buttons: Holds the Tkinter buttons displaying players
+
+        - with_opening: The value at index i is true if the ith player should use an opening book
+        - depth: The value at the index i is the depth of the ith player if they use a minimax search tree
+        - repetitions: The value at index i is the number of repetitions of the ith player if they
+            use a MCTS.
 
         - choose_player1: Whether player 1 has been chosen yet
     """
     game: Type[Game.Game]
     game_state: Type[Game.GameState]
-    player1: Type[Game.Player]
-    player2: Type[Game.Player]
+    player1_id: int
+    player2_id: int
 
     title: tk.Label
     game_buttons: list[tk.Button]
     player_buttons: list[tk.Button]
+
+    choose_opening: tk.Button
+    decline_opening: tk.Button
+
+    with_opening: list[bool, bool]
+    depth: Tuple[int, int]
+    repetitions: Tuple[int, int]
 
     choose_player1: bool
 
@@ -45,6 +58,7 @@ class Menu(tk.Frame):
         self.game_buttons = []
         self.player_buttons = []
         self.choose_player1 = True
+        self.with_opening = [False, False]
 
         super().__init__(master)
         self.master = master
@@ -71,8 +85,9 @@ class Menu(tk.Frame):
 
         self.pack()
 
-        players = ['Random Player', 'Minimax Player', 'MCTS Simulation Player', 'MCTS Neural Network Player']
-        for i in range(4):
+        players = ['Random Player', 'Minimax Player', 'MCTS Simulation Player',
+                   'MCTS Neural Network Player', 'Neural Network Player']
+        for i in range(5):
             self.player_buttons.append(tk.Button(self))
             self.player_buttons[i]['text'] = players[i]
             self.player_buttons[i]['command'] = lambda: self.assign_player(i)
@@ -96,29 +111,102 @@ class Menu(tk.Frame):
     def assign_player(self, player_id: int) -> None:
         """Assigns the player."""
         if self.choose_player1:
-            if player_id == 0:
-                self.player1 = Player.RandomPlayer
-            elif player_id == 1:
-                self.player1 = Player.MinimaxPlayer
-            elif player_id == 2:
-                self.player1 = MonteCarloSimulation.MonteCarloSimulationPlayer
-            elif player_id == 3:
-                self.player1 = MonteCarloNeuralNetwork.MonteCarloNeuralNetworkPlayer
+            self.player1_id = player_id
 
             self.choose_player1 = False
             self.title['text'] = 'Choose Player 2'
         else:
-            if player_id == 0:
-                self.player2 = Player.RandomPlayer
-            elif player_id == 1:
-                self.player2 = Player.MinimaxPlayer
-            elif player_id == 2:
-                self.player2 = MonteCarloSimulation.MonteCarloSimulationPlayer
-            elif player_id == 3:
-                self.player2 = MonteCarloNeuralNetwork.MonteCarloNeuralNetworkPlayer
+            self.player2_id = player_id
 
             self.start_game()
 
+    def choose_opening(self, is_player_1: bool) -> None:
+        """Displays the menu where the user can choose whether the chosen player should use an opening book"""
+        # TODO: fix
+        self.choose_opening = tk.Button(self)
+        self.choose_opening['text'] = "Make Player use openings book"
+        self.choose_opening['command'] = lambda: self.assign_opening(True, is_player_1)
+        self.choose_opening.pack(side='top')
+
+        self.decline_opening = tk.Button(self)
+        self.decline_opening['text'] = "Make Player use openings book"
+        self.decline_opening['command'] = lambda: self.assign_opening(False, is_player_1)
+        self.decline_opening.pack(side='top')
+
+    def assign_opening(self, value: bool, is_player_1: bool):
+        """Assign the value of self.with_opening"""
+        if is_player_1:
+            self.with_opening[0] = value
+        else:
+            self.with_opening[1] = value
+
+    def choose_depth(self) -> None:
+        """Displays the menu where the user can choose the depth of the chosen minimax player"""
+        # TODO
+
+    def choose_repetition(self) -> None:
+        """Displays the menu where the user can choose the repetition of the chosen MCST player"""
+        # TODO
+
     def start_game(self) -> None:
         """Starts the game"""
-        # TODO
+        import GameGUI
+
+        if self.game == TicTacToe:
+            file_name = "TicTacToeNeuralNetwork.txt"
+        elif self.game == ConnectFour:
+            file_name = "ConnectFourNeuralNetwork.txt"
+        else:  # self.game == Reversi
+            file_name = "ReversiNeuralNetwork.txt"
+        neural_network = MonteCarloNeuralNetwork.load_neural_network(file_name)
+        start_state = self.game_state()
+
+        if self.player1_id == 0:
+            player1 = Player.RandomPlayer(start_state.copy())
+        elif self.player1_id == 1:
+            player1 = Player.MinimaxPlayer(start_state.copy(), depth=self.depth[0])
+        elif self.player1_id == 2:
+            player1 = MonteCarloSimulation.MonteCarloSimulationPlayer(start_state.copy(), repeat=self.repetitions[0])
+        elif self.player1_id == 3:
+            player1 = MonteCarloNeuralNetwork.MonteCarloNeuralNetworkPlayer(
+                start_state.copy(),
+                neural_network,
+                True,
+                repeat=self.repetitions[0]
+            )
+        else:  # self.player1_id == 4
+            player1 = MonteCarloNeuralNetwork.MonteCarloNeuralNetwork(
+                start_state.copy(),
+                neural_network,
+                True
+            )
+
+        if self.with_opening[0]:
+            player1 = OpeningsPlayer.ReversiOpeningsPlayer(start_state.copy(), player1)
+
+        if self.player2_id == 0:
+            player2 = Player.RandomPlayer(start_state.copy())
+        elif self.player2_id == 1:
+            player2 = Player.MinimaxPlayer(start_state.copy(), depth=self.depth[1])
+        elif self.player2_id == 2:
+            player2 = MonteCarloSimulation.MonteCarloSimulationPlayer(start_state.copy(), repeat=self.repetitions[1])
+        elif self.player2_id == 3:
+            player2 = MonteCarloNeuralNetwork.MonteCarloNeuralNetworkPlayer(
+                start_state.copy(),
+                neural_network,
+                False,
+                repeat=self.repetitions[1]
+            )
+        else:  # self.player2_id == 4
+            player2 = MonteCarloNeuralNetwork.MonteCarloNeuralNetwork(
+                start_state.copy(),
+                neural_network,
+                False
+            )
+
+        if self.with_opening[1]:
+            player2 = OpeningsPlayer.ReversiOpeningsPlayer(start_state.copy(), player2)
+
+        game = self.game(player1, player2, start_state)
+        winner, history = game.play_game()
+        GameGUI.display_game(history)

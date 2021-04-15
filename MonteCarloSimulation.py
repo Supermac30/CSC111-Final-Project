@@ -35,7 +35,7 @@ class MonteCarloGameTree(GameTree):
         self.value = value
         self.repeat = repeat
         self.exploration_parameter = exploration_parameter
-        self.visits = 0
+        self.visits = 1
 
     def find_value(self) -> None:
         """Run a Monte Carlo tree search repeatedly to estimate the value the root."""
@@ -53,7 +53,7 @@ class MonteCarloGameTree(GameTree):
             explore_state = self.select_child()
 
             # We change the reward from 1 to 0 or 0 to 1, as the player changes
-            reward = 1 - explore_state.monte_carlo_tree_search()
+            reward = explore_state.monte_carlo_tree_search()
         else:
             # Expansion phase
             self.expand_root()
@@ -61,7 +61,11 @@ class MonteCarloGameTree(GameTree):
             # Simulation phase
             if self.children != []:
                 child = random.choice(self.children)
-                reward = child.move_value()
+                reward = 1 - child.move_value()
+
+                # Update the value and visits of the randomly chosen child
+                child.value += 1 - reward
+                child.visits += 1
             else:
                 reward = self.move_value()
 
@@ -69,7 +73,7 @@ class MonteCarloGameTree(GameTree):
         self.value += reward
         self.visits += 1
 
-        return reward
+        return 1 - reward
 
     def select_child(self) -> MonteCarloGameTree:
         """Chooses which state to explore in the exploration phase.
@@ -168,7 +172,8 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
 
     def move_value(self) -> float:
         """"Play a game where players make random moves from self.
-        Return 1 if the winner is player 1 and 0 if it is player 2, and 0.5 if it is a tie
+        The turn of the player who just played is self.root.turn.
+        Return 1 if the next player wins and zero otherwise in a random simulation.
         """
         random_player1 = RandomPlayer(self.root.copy())
         random_player2 = RandomPlayer(self.root.copy())
@@ -176,6 +181,7 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
 
         winner = game.play_game()[0]
         if winner[0]:  # If there was not a tie
+            # Return a reward of 1 if the player who makes the move eventually wins
             if winner[1] != self.root.turn:
                 return 1
             else:
@@ -224,7 +230,6 @@ class MonteCarloSimulationPlayer(Player):
                 continue
             average_value = move.value / move.visits
 
-            # If it is player 1's turn, maximise
             if average_value > best_average_value:
                 best_move = move
                 best_average_value = best_move.value / best_move.visits

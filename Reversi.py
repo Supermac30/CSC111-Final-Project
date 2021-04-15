@@ -20,16 +20,18 @@ class ReversiGameState(GameState):
         - turn: Stores the turn of the player. This is true if it is X's turn and False otherwise.
         - game_type: Holds the type of game.
         - previous_move: Stores the previous move made. This is None if no move has been made yet.
+        - has_passed: Stores whether the previous player has passed. If both players pass, the game is over.
     """
     n: int
     board: list[list[int]]
     turn: bool
     game_type: Type[Game]
     previous_move: Optional[Tuple[int, int]]
+    has_passed: bool
 
-    def __init__(self, n: int = 6, game_state: Optional[ReversiGameState] = None) -> None:
+    def __init__(self, n: int = 8, game_state: Optional[ReversiGameState] = None, has_passed: bool = False) -> None:
         assert n % 2 == 0
-
+        self.has_passed = has_passed
         self.n = n
 
         self.game_type = Reversi
@@ -99,8 +101,9 @@ class ReversiGameState(GameState):
         A helper function"""
         return 0 <= move[0] <= self.n - 1 and 0 <= move[1] <= self.n - 1
 
-    def make_move(self, move: Tuple[int, int], check_legal: bool = True) -> bool:
+    def make_move(self, move: Optional[Tuple[int, int]], check_legal: bool = True) -> bool:
         """Play move. Returns False if move is not legal and True otherwise.
+        move is None when a pass is played.
 
         check_legal can be set to False to save time.
 
@@ -108,6 +111,14 @@ class ReversiGameState(GameState):
             - 0 <= move[0] <= self.n
             - 0 <= move[1] <= self.n
         """
+        if move is None:
+            if self.has_passed:
+                return False
+            self.has_passed = True
+            self.turn = not self.turn
+
+            return True
+
         if not check_legal and self.is_legal(move):
             self.previous_move = move
 
@@ -123,6 +134,7 @@ class ReversiGameState(GameState):
                 self.board[move[0]][move[1]] = 0
 
             self.turn = not self.turn
+            self.has_passed = False
             return True
         else:
             return False
@@ -180,6 +192,12 @@ class ReversiGameState(GameState):
                     new_game = ReversiGameState(self.n, self)
                     new_game.make_move((i, j), False)
                     possible_moves.append(new_game)
+
+        # You can only pass when you cannot play any other moves.
+        if not self.has_passed and possible_moves == []:
+            new_game = ReversiGameState(self.n, self)
+            new_game.make_move(None, False)
+            possible_moves.append(new_game)
         return possible_moves
 
     def winner(self) -> Optional[Tuple[bool, bool]]:
@@ -209,7 +227,7 @@ class ReversiGameState(GameState):
 
     def equal(self, game_state: ReversiGameState) -> bool:
         """Return whether self is equal to game_state"""
-        return self.board == game_state.board
+        return self.board == game_state.board and self.has_passed == game_state.has_passed
 
     def __str__(self) -> str:
         """A unique string representation of the board for memoization and debugging."""

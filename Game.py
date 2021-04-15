@@ -156,7 +156,7 @@ class Game:
 
     def play_games(self, n: int) -> Tuple[float, float]:
         """Play n games and return a Tuple where the first element is
-        the proportion of times player 1 wins, and the second is the proportion of times player 2 wins"""
+        the number of times player 1 wins, and the second is the number of times player 2 wins"""
         player1_win = 0
         player2_win = 0
         for _ in range(n):
@@ -166,7 +166,7 @@ class Game:
                     player1_win += 1
                 else:
                     player2_win += 1
-        return (player1_win / n, player2_win / n)
+        return (player1_win, player2_win)
 
     def play_with_human(self, is_player1: bool, screen_size: Tuple[int, int] = (500, 500)) -> Tuple[Tuple[bool, bool], list[GameState]]:
         """Play a game with a human as player 1 if is_player1 is True and

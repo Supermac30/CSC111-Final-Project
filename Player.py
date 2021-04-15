@@ -24,7 +24,7 @@ class RandomPlayer(Player):
 
     def copy(self) -> RandomPlayer:
         """Return a copy of self"""
-        return RandomPlayer(self.game_tree.root, self.game_tree.copy())
+        return RandomPlayer(self.game_tree.root, None)
 
 
 class MinimaxGameTree(GameTree):

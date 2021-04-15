@@ -47,13 +47,13 @@ def start() -> list[Game.GameState]:
     import time
     b = time.time()
 
-    start_state = ConnectFour.ConnectFourGameState()
+    start_state = Reversi.ReversiGameState()
 
-    player1 = MonteCarloSimulation.MonteCarloSimulationPlayer(start_state.copy(), repeat=1500)
-    player2 = MonteCarloSimulation.MonteCarloSimulationPlayer(start_state.copy(), repeat=2000)
+    player1 = Player.RandomPlayer(start_state.copy())
+    player2 = Player.RandomPlayer(start_state.copy())
 
-    game = ConnectFour.ConnectFour(player1, player2, start_state.copy())
-    x = game.play_game(True)
+    game = Reversi.Reversi(player1, player2, start_state.copy())
+    x = game.play_with_human(True)
     print(x[0])
     print(time.time() - b)
     return x[1]
