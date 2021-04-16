@@ -24,7 +24,7 @@ class RandomPlayer(Player):
 
     def copy(self) -> RandomPlayer:
         """Return a copy of self"""
-        return RandomPlayer(self.game_tree.root, None)
+        return RandomPlayer(self.game_tree.root, self.game_tree.copy())
 
 
 class MinimaxGameTree(GameTree):
@@ -149,8 +149,10 @@ class MinimaxGameTree(GameTree):
 
     def copy(self) -> MinimaxGameTree:
         """Return a copy of self"""
-        return MinimaxGameTree(self.root.copy(), self.value)
-
+        new_tree = MinimaxGameTree(self.root.copy(), self.value)
+        # The base case is when self has no children
+        new_tree.children = [child.copy() for child in self.children]
+        return new_tree
 
 class MinimaxPlayer(Player):
     """A player that chooses the optimal move using the minimax algorithm

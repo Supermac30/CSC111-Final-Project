@@ -17,16 +17,13 @@ class TicTacToeGameState(GameState):
         - board: A 2D 3x3 list storing the object in each position in the game.
             A 1 is placed if 'X' is in the location, 0 if it is a 'O' and -1 if it is empty.
         - turn: Stores the turn of the player. This is true if it is X's turn and False otherwise.
-        - game_type: Holds the type of game.
         - previous_move: Stores the previous move made. This is None if no move has been made yet.
     """
     board: list[list[int]]
     turn: bool
-    game_type: Type[Game]
     previous_move: Optional[Tuple[int, int]]
 
     def __init__(self, game_state: Optional[TicTacToeGameState] = None) -> None:
-        self.game_type = TicTacToe
         self.previous_move = None
         if game_state is None:
             self.board = [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]]
@@ -217,21 +214,3 @@ class TicTacToeGameState(GameState):
     def copy(self) -> TicTacToeGameState:
         """Return a copy of self"""
         return TicTacToeGameState(self)
-
-
-class TicTacToe(Game):
-    """A subclass of Game implementing TicTacToe.
-
-    This is used as a simple testing ground for algorithms
-
-    Instance Attributes:
-        - player1: Stores the Player object representing the player playing as 'X'.
-        - player2: Stores the Player object representing the player playing as 'O'.
-    """
-    # Private Instance Attributes
-    #   - game_state: Stores the current game state
-    _game_state: TicTacToeGameState
-
-    def copy(self) -> TicTacToe:
-        """Return a copy of self"""
-        return TicTacToe(self.player1.copy(), self.player2.copy(), self._game_state.copy())

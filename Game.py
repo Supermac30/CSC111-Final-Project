@@ -14,12 +14,10 @@ class GameState:
     Instance Attributes:
         - turn: Is True if it is player 1's turn and False otherwise
         - previous_move: Holds the previous move made. This is None if no move has been made yet.
-        - game_type: Holds the type of game
         - board: Holds the board representing the game state
     """
     turn: bool
     previous_move: Any
-    game_type: Type[Game]
     board: list
 
     def change_state(self, new_state: GameState) -> bool:
@@ -103,21 +101,22 @@ class Game:
         - history: Stores the moves performed by players
         - player1: Holds the first player
         - player2: Holds the second player
+
+    Representation Invariants:
+        - self.player1.game_tree.root.is_equal(self.player2.game_tree.root)
     """
     # Private Instance Attributes
-    #   - game_state: Stores the current game state
+    #   - _start_state: Stores the game state that we start with
 
-    # TODO: Remove redundant _game_state attribute
-
-    _game_state: GameState
+    _start_state: GameState
 
     history: list[GameState]
     player1: Player
     player2: Player
 
-    def __init__(self, player1: Player, player2: Player, game_state: GameState) -> None:
-        self._game_state = game_state
-        self.history = [game_state]
+    def __init__(self, player1: Player, player2: Player) -> None:
+        self._start_state = player1.game_tree.root
+        self.history = [self._start_state]
         self.player1 = player1
         self.player2 = player2
 
@@ -132,27 +131,27 @@ class Game:
 
         Returns the history of moves as well.
         """
-        if self._game_state.turn:
+        if self._start_state.turn:
             player = 0
         else:
             player = 1
 
-        previous_state = None
-        while self.winner() is None:
+        previous_state, new_state = None, self._start_state
+        while new_state.winner() is None:
             if player == 0:
                 new_state = self.player1.make_move(previous_state)
                 player = 1
             else:
                 new_state = self.player2.make_move(previous_state)
                 player = 0
-            self.change_state(new_state)
 
+            self.history.append(new_state)
             previous_state = new_state
 
             if debug:
                 print(previous_state)
 
-        return self.winner(), self.history
+        return new_state.winner(), self.history
 
     def play_games(self, n: int) -> Tuple[float, float]:
         """Play n games and return a Tuple where the first element is
@@ -168,7 +167,8 @@ class Game:
                     player2_win += 1
         return (player1_win, player2_win)
 
-    def play_with_human(self, is_player1: bool, screen_size: Tuple[int, int] = (500, 500)) -> Tuple[Tuple[bool, bool], list[GameState]]:
+    def play_with_human(self, is_player1: bool,
+                        screen_size: Tuple[int, int] = (500, 500)) -> Tuple[Tuple[bool, bool], list[GameState]]:
         """Play a game with a human as player 1 if is_player1 is True and
         the human as player 2 otherwise.
         """
@@ -176,17 +176,19 @@ class Game:
         pygame.init()
         screen = pygame.display.set_mode(screen_size)
 
-        if self._game_state.turn:
+        if self._start_state.turn:
             player = 0
         else:
             player = 1
-        self._game_state.display(screen)
+        self._start_state.display(screen)
         pygame.display.flip()
 
-        previous_state = None
+        new_state = self._start_state
         click_loc = None
 
-        while self.winner() is None:
+        while new_state.winner() is None:
+            previous_state = new_state
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     break
@@ -195,7 +197,7 @@ class Game:
 
             if player == 0:
                 if is_player1:
-                    new_state = self._game_state.get_human_input(screen, click_loc)
+                    new_state = new_state.get_human_input(screen, click_loc)
                 else:
                     new_state = self.player1.make_move(previous_state)
 
@@ -203,61 +205,30 @@ class Game:
                 if is_player1:
                     new_state = self.player2.make_move(previous_state)
                 else:
-                    new_state = self._game_state.get_human_input(screen, click_loc)
+                    new_state = new_state.get_human_input(screen, click_loc)
 
             click_loc = None
 
             # If a move has been made
             if new_state is not None:
                 player = 1 - player  # change the player from 1 to 0 or vice versa
-                self.change_state(new_state)
-
                 new_state.display(screen)
+                self.history.append(new_state)
+            else:
+                new_state = previous_state
 
-                previous_state = new_state
             pygame.display.flip()
 
-        return self.winner(), self.history
+        # Show the user the final move before immediately quitting
+        pygame.display.flip()
+        pygame.time.delay(1000)
+        pygame.quit()
 
-    def legal_moves(self) -> list[GameState]:
-        """Return a list of legal moves from this position"""
-        return self._game_state.legal_moves()
-
-    def make_move(self, move: Any, check_legal: bool = False) -> None:
-        """Change the current game state.
-
-        If check_legal is true, an error is raised if the move is not legal.
-        This can be made false to save time.
-        """
-        if not check_legal or self._game_state.is_legal(move):
-            self.history.append(self._game_state)
-            self._game_state.make_move(move)
-        else:
-            raise MoveNotLegalError(str(move))
-
-    def change_state(self, new_state: GameState, check_legal: bool = False) -> None:
-        """Change the current game state.
-
-        If check_legal is true, an error is raised if the move is not legal.
-        This can be made false to save time.
-        """
-        if check_legal:
-            if all(not new_state.equal(legal_move) for legal_move in self.legal_moves()):
-                raise MoveNotLegalError(str(new_state.previous_move))
-
-        self.history.append(new_state)
-        self._game_state = new_state
-
-    def winner(self) -> Optional[Tuple[bool, bool]]:
-        """Return a tuple, where the first value is true if some player won,
-        and the second value is true if player 1 won,
-
-        Return None if the game is not over."""
-        return self._game_state.winner()
+        return new_state.winner(), self.history
 
     def copy(self) -> Game:
         """Return a copy of self"""
-        raise NotImplementedError
+        return Game(self.player1.copy(), self.player2.copy())
 
 
 class Player:
@@ -363,7 +334,7 @@ class GameTree:
 
     def copy(self) -> GameTree:
         """Return a copy of self"""
-        raise NotImplementedError
+        return GameTree(self.root.copy())
 
 
 class MoveNotLegalError(Exception):

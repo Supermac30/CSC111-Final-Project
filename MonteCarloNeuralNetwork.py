@@ -29,7 +29,8 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
             The first is the predicted value of moving into the state. This is used in the MCST to
                 update the value of a state.
             The second is the probability that a state should be explored. This is used in the MCST to
-                choose which nodes to explore.    """
+                choose which nodes to explore.
+    """
 
     root: GameState
     value: Optional[float]
@@ -41,7 +42,7 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
     neural_network: MLPClassifier
 
     def __init__(self, start_state: GameState, neural_network: MLPClassifier,
-                 repeat: int = 200, exploration_parameter: float = 1, value: float = 0) -> None:
+                 repeat: int = 40, exploration_parameter: float = 1.4142, value: float = 0) -> None:
         super().__init__(start_state, repeat=repeat,
                          exploration_parameter=exploration_parameter, value=value)
         self.neural_network = neural_network
@@ -110,19 +111,21 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
         # Normalises the categories into values between 0 and 1
         player_1_reward = (player_1_reward + 1) / 2
 
-        if self.root.turn:
+        if not self.root.turn:
             return player_1_reward
         return 1 - player_1_reward
 
     def copy(self) -> MonteCarloNeuralNetwork:
         """Return a copy of self"""
-        return MonteCarloNeuralNetwork(
+        new_tree = MonteCarloNeuralNetwork(
             self.root.copy(),
             self.neural_network,
             self.repeat,
             self.exploration_parameter,
             self.value
         )
+        new_tree.children = [child.copy() for child in self.children]
+        return new_tree
 
 
 class MonteCarloNeuralNetworkPlayer(Player):
@@ -136,7 +139,7 @@ class MonteCarloNeuralNetworkPlayer(Player):
     is_player1: bool
 
     def __init__(self, start_state: GameState, neural_network: MLPClassifier,
-                 is_player1: bool, game_tree: MonteCarloNeuralNetwork = None, repeat: int = 100) -> None:
+                 is_player1: bool, game_tree: MonteCarloNeuralNetwork = None, repeat: int = 50) -> None:
         if game_tree is not None:
             self.game_tree = game_tree
         else:
@@ -209,10 +212,11 @@ class NeuralNetworkPlayer(Player):
 
     def copy(self) -> NeuralNetworkPlayer:
         """Return a copy of self"""
-        return NeuralNetworkPlayer(self.game_tree.root, self.neural_network, self.is_player1, self.game_tree)
+        return NeuralNetworkPlayer(self.game_tree.root.copy(), self.neural_network,
+                                   self.is_player1, self.game_tree.copy())
 
 
-def train_neural_network(game: Type[Game], game_state: Type[GameState], hidden_layer: Union[int, Tuple],
+def train_neural_network(game_state: Type[GameState], hidden_layer: Union[int, Tuple],
                          repeat: int = 10, num_games: int = 10, neural_net: MLPClassifier = None) -> MLPClassifier:
     """Trains a neural network to play TicTacToe.
 
@@ -229,14 +233,14 @@ def train_neural_network(game: Type[Game], game_state: Type[GameState], hidden_l
 
     training = ([], [])
     for i in range(num_games):
-        training, neural_net = update_neural_network(game, game_state, neural_net, repeat, training)
+        training, neural_net = update_neural_network(game_state, neural_net, repeat, training)
         print(i)
 
     return neural_net
 
 
-def update_neural_network(game: Type[Game], game_state: Type[GameState],
-                          neural_net: MLPClassifier, repeat: int, training: Tuple[list[list], list[float]]) \
+def update_neural_network(game_state: Type[GameState], neural_net: MLPClassifier, repeat: int,
+                          training: Tuple[list[list], list[float]]) \
         -> Tuple[Tuple[list[list], list[float]], MLPClassifier]:
     """A helper function that has neural_net play a game against itself, then learn.
 
@@ -248,7 +252,7 @@ def update_neural_network(game: Type[Game], game_state: Type[GameState],
     player1 = MonteCarloNeuralNetworkPlayer(game_state(), neural_net, True, repeat=repeat)
     player2 = MonteCarloNeuralNetworkPlayer(game_state(), neural_net, False, repeat=repeat)
 
-    set_up_game = game(player1, player2, game_state())
+    set_up_game = Game(player1, player2)
 
     # play the game
     winner, history = set_up_game.play_game(False)
@@ -272,34 +276,36 @@ def update_neural_network(game: Type[Game], game_state: Type[GameState],
     old_neural_net = copy.deepcopy(neural_net)
     neural_net.fit(x, y)
 
-    if not is_better(game, game_state, neural_net, old_neural_net):
+    if not is_better(game_state, neural_net, old_neural_net):
         return (x, y), old_neural_net
     print("new is better")
     return (x, y), neural_net
 
 
-def is_better(game: Type[Game], game_state: Type[GameState],
-              neural_net_1: MLPClassifier, neural_net_2: MLPClassifier, num_games: int = 5) -> bool:
+def is_better(game_state: Type[GameState], neural_net_1: MLPClassifier,
+              neural_net_2: MLPClassifier, num_games: int = 2) -> bool:
     """Return whether neural_net1 beats neural_net2 more often"""
     player1 = MonteCarloNeuralNetworkPlayer(game_state(), neural_net_1, True)
     player2 = MonteCarloNeuralNetworkPlayer(game_state(), neural_net_2, False)
 
-    set_up_game = game(player1, player2, game_state())
-    num_wins_1 = set_up_game.play_games(num_games)[1]
+    set_up_game = Game(player1, player2)
+    num_wins_1 = set_up_game.play_games(num_games)[0]
     print(num_wins_1)
+    if num_wins_1 == 0:
+        return False
 
     player1 = MonteCarloNeuralNetworkPlayer(game_state(), neural_net_2, True)
     player2 = MonteCarloNeuralNetworkPlayer(game_state(), neural_net_1, False)
 
-    set_up_game = game(player1, player2, game_state())
-    num_wins_2 = set_up_game.play_games(num_games)[0]
+    set_up_game = Game(player1, player2)
+    num_wins_2 = set_up_game.play_games(num_games)[1]
     print(num_wins_2)
 
+    # Return whether neural_net1 won a majority of the 2 * num_games games
     return num_wins_1 + num_wins_2 > num_games
 
 
-def test_neural_network(game: Type[Game], game_state: Type[GameState],
-                        neural_network: MLPClassifier, is_player1: bool) -> None:
+def test_neural_network(game_state: Type[GameState], neural_network: MLPClassifier, is_player1: bool) -> None:
     import GameGUI
     import Player
 
@@ -307,9 +313,9 @@ def test_neural_network(game: Type[Game], game_state: Type[GameState],
     player2 = Player.MinimaxPlayer(game_state(), depth=1)
 
     if is_player1:
-        set_up_game = game(player1, player2, game_state())
+        set_up_game = Game(player1, player2)
     else:
-        set_up_game = game(player2, player1, game_state())
+        set_up_game = Game(player2, player1)
     GameGUI.display_game(set_up_game.play_with_human(not is_player1)[1])
 
 
@@ -328,17 +334,32 @@ def load_neural_network(file_name: str) -> MLPClassifier:
     This uses the library pickle
     """
     import pickle
-    return pickle.load(open(file_name))
+    return pickle.load(open(file_name, 'rb'))
 
 
-import TicTacToe
-brain = train_neural_network(TicTacToe.TicTacToe, TicTacToe.TicTacToeGameState, 3, repeat=100, num_games=1000)
-save_neural_network(brain, "data/nueral_networks/TicTacToeNeuralNetwork.txt")
+if __name__ == "__main__":
+    value = True
+    if value:
+        # import TicTacToe
+        # brain = train_neural_network(TicTacToe.TicTacToeGameState, (6, 3), repeat=50, num_games=100)
+        # save_neural_network(brain, "data/neural_networks/TicTacToeNeuralNetwork.txt")
 
-import ConnectFour
-brain = train_neural_network(ConnectFour.ConnectFour, ConnectFour.ConnectFourGameState, (6, 6), repeat=300, num_games=1000)
-save_neural_network(brain, "data/nueral_networks/ConnectFourNeuralNetwork.txt")
+        # import ConnectFour
+        # brain = train_neural_network(ConnectFour.ConnectFourGameState, (6, 6), repeat=100, num_games=300)
+        # save_neural_network(brain, "data/neural_networks/ConnectFourNeuralNetwork.txt")
 
-import Reversi
-brain = train_neural_network(Reversi.Reversi, Reversi.ReversiGameState, (8, 8), repeat=500, num_games=1000)
-save_neural_network(brain, "data/nueral_networks/ReversiNeuralNetwork.txt")
+        import Reversi
+        brain = train_neural_network(Reversi.ReversiGameState, (8, 8), repeat=200, num_games=100)
+        save_neural_network(brain, "data/neural_networks/ReversiNeuralNetwork.txt")
+
+    else:
+        import TicTacToe
+        from MonteCarloSimulation import MonteCarloSimulationPlayer
+        start_state = TicTacToe.TicTacToeGameState()
+        brain = load_neural_network("data/neural_networks/TicTacToeNeuralNetwork.txt")
+        player1 = MonteCarloNeuralNetworkPlayer(start_state.copy(), brain, True)
+        player1p = NeuralNetworkPlayer(start_state.copy(), brain, False)
+        player2 = MonteCarloSimulationPlayer(start_state.copy(), repeat=100)
+
+        game = Game(player2, player1p)
+        print(game.play_games(20))

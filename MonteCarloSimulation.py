@@ -9,7 +9,7 @@ import random
 from typing import Optional
 
 from Player import RandomPlayer
-from Game import GameState, GameTree, MoveNotLegalError, Player
+from Game import GameState, GameTree, MoveNotLegalError, Player, Game
 
 
 class MonteCarloGameTree(GameTree):
@@ -177,7 +177,7 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
         """
         random_player1 = RandomPlayer(self.root.copy())
         random_player2 = RandomPlayer(self.root.copy())
-        game = self.root.game_type(random_player1, random_player2, self.root.copy())
+        game = Game(random_player1, random_player2)
 
         winner = game.play_game()[0]
         if winner[0]:  # If there was not a tie
@@ -190,12 +190,14 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
 
     def copy(self) -> MonteCarloSimulationGameTree:
         """Return a copy of self"""
-        return MonteCarloSimulationGameTree(
+        new_tree = MonteCarloSimulationGameTree(
             self.root.copy(),
             self.repeat,
             self.exploration_parameter,
             self.value
         )
+        new_tree.children = [child.copy() for child in self.children]
+        return new_tree
 
 
 class MonteCarloSimulationPlayer(Player):

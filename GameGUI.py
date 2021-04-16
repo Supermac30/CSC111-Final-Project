@@ -34,7 +34,6 @@ def display_game(history: list[Game.GameState], screen_size: Tuple[int, int] = (
                     position = max(0, position - 1)
                 elif event.key == pygame.K_RIGHT:
                     position = min(len(history) - 1, position + 1)
-        screen.fill((255, 255, 255))
         history[position].display(screen)
 
         pygame.display.flip()
@@ -50,9 +49,9 @@ def start() -> list[Game.GameState]:
     start_state = Reversi.ReversiGameState()
 
     player1 = Player.RandomPlayer(start_state.copy())
-    player2 = Player.RandomPlayer(start_state.copy())
+    player2 = Player.MinimaxPlayer(start_state.copy(), depth=2)
 
-    game = Reversi.Reversi(player1, player2, start_state.copy())
+    game = Game.Game(player1, player2)
     x = game.play_with_human(True)
     print(x[0])
     print(time.time() - b)

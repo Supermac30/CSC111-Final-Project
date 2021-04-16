@@ -21,7 +21,6 @@ class Menu(tk.Frame):
     """Stores the Menu to launch desired games
 
     Instance Attributes:
-        - game: The type of game that will be played
         - game_state: The type of game state that will be used
         - player1_id: Stores an integer representing the type of player player 1 will be
         - player2_id: Stores an integer representing the type of player player 2 will be
@@ -36,7 +35,6 @@ class Menu(tk.Frame):
 
         - choose_player1: Whether player 1 has been chosen yet
     """
-    game: Type[Game.Game]
     game_state: Type[Game.GameState]
     player1_id: int
     player2_id: int
@@ -45,7 +43,7 @@ class Menu(tk.Frame):
     game_buttons: list[tk.Button]
     player_buttons: list[tk.Button]
 
-    choose_opening: tk.Button
+    accept_opening: tk.Button
     decline_opening: tk.Button
 
     with_opening: list[bool, bool]
@@ -96,13 +94,10 @@ class Menu(tk.Frame):
     def assign_game(self, game_id: int) -> None:
         """Assigns the game to be played and changes the menu"""
         if game_id == 0:
-            self.game = TicTacToe.TicTacToe
             self.game_state = TicTacToe.TicTacToeGameState
         elif game_id == 1:
-            self.game = ConnectFour.ConnectFour
             self.game_state = ConnectFour.ConnectFourGameState
         elif game_id == 2:
-            self.game = Reversi.Reversi
             self.game_state = Reversi.ReversiGameState
 
         self.pack_forget()
@@ -111,52 +106,83 @@ class Menu(tk.Frame):
     def assign_player(self, player_id: int) -> None:
         """Assigns the player."""
         if self.choose_player1:
-            self.player1_id = player_id
-
             self.choose_player1 = False
-            self.title['text'] = 'Choose Player 2'
+            self.player1_id = player_id
+            self.pack_forget()
+            if self.game_state == Reversi.ReversiGameState:
+                self.choose_opening(True)
+            elif player_id == 1:
+                self.choose_depth()
+            elif player_id == 2 or player_id == 3:
+                self.choose_repetition()
+            else:
+                self.create_player_menu()
         else:
             self.player2_id = player_id
-
-            self.start_game()
+            self.pack_forget()
+            if self.game_state == Reversi.ReversiGameState:
+                self.choose_opening(True)
+            elif player_id == 1:
+                self.choose_depth()
+            elif player_id == 2 or player_id == 3:
+                self.choose_repetition()
+            else:
+                self.start_game()
 
     def choose_opening(self, is_player_1: bool) -> None:
         """Displays the menu where the user can choose whether the chosen player should use an opening book"""
-        # TODO: fix
-        self.choose_opening = tk.Button(self)
-        self.choose_opening['text'] = "Make Player use openings book"
-        self.choose_opening['command'] = lambda: self.assign_opening(True, is_player_1)
-        self.choose_opening.pack(side='top')
+        self.accept_opening = tk.Button(self)
+        self.accept_opening['text'] = "Make Player use openings book"
+        self.accept_opening['command'] = lambda: self.assign_opening(True, is_player_1)
+        self.accept_opening.pack(side='top')
 
         self.decline_opening = tk.Button(self)
-        self.decline_opening['text'] = "Make Player use openings book"
+        self.decline_opening['text'] = "Don't Make Player use openings book"
         self.decline_opening['command'] = lambda: self.assign_opening(False, is_player_1)
         self.decline_opening.pack(side='top')
 
     def assign_opening(self, value: bool, is_player_1: bool):
         """Assign the value of self.with_opening"""
+        self.pack_forget()
         if is_player_1:
             self.with_opening[0] = value
+            if self.player1_id == 1:
+                self.choose_depth()
+            elif self.player1_id == 2 or self.player1_id == 3:
+                self.choose_repetition()
+            else:
+                self.create_player_menu()
         else:
             self.with_opening[1] = value
+            if self.player2_id == 1:
+                self.choose_depth()
+            elif self.player2_id == 2 or self.player2_id == 3:
+                self.choose_repetition()
+            else:
+                self.start_game()
 
     def choose_depth(self) -> None:
         """Displays the menu where the user can choose the depth of the chosen minimax player"""
         # TODO
 
+    def assign_depth(self) -> None:
+
     def choose_repetition(self) -> None:
         """Displays the menu where the user can choose the repetition of the chosen MCST player"""
         # TODO
 
+    def assign_repetition(self) -> None:
+
     def start_game(self) -> None:
         """Starts the game"""
         import GameGUI
+        from Game import Game
 
-        if self.game == TicTacToe:
+        if self.game_state == TicTacToe.TicTacToeGameState:
             file_name = "TicTacToeNeuralNetwork.txt"
-        elif self.game == ConnectFour:
+        elif self.game_state == ConnectFour.ConnectFourGameState:
             file_name = "ConnectFourNeuralNetwork.txt"
-        else:  # self.game == Reversi
+        else:  # self.game_state == Reversi.ReversiGameState
             file_name = "ReversiNeuralNetwork.txt"
         neural_network = MonteCarloNeuralNetwork.load_neural_network(file_name)
         start_state = self.game_state()
@@ -207,6 +233,6 @@ class Menu(tk.Frame):
         if self.with_opening[1]:
             player2 = OpeningsPlayer.ReversiOpeningsPlayer(start_state.copy(), player2)
 
-        game = self.game(player1, player2, start_state)
+        game = Game(player1, player2)
         winner, history = game.play_game()
         GameGUI.display_game(history)

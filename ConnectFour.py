@@ -18,19 +18,16 @@ class ConnectFourGameState(GameState):
         - board: A 2D nxn list storing the object in each position in the game.
             A 1 is placed if player 1's piece is in the location, 0 if it is player 2's piece and -1 if it is empty.
         - turn: Stores the turn of the player. This is true if it is X's turn and False otherwise.
-        - game_type: Holds the type of game.
         - previous_move: Stores the previous move made. This is None if no move has been made yet.
     """
     n: int
     board: list[list[int]]
     turn: bool
-    game_type: Type[Game]
     previous_move: Optional[int]
 
     def __init__(self, n: int = 6, game_state: Optional[ConnectFourGameState] = None) -> None:
         assert n >= 4
 
-        self.game_type = ConnectFour
         self.previous_move = None
         if game_state is None:
             self.board = [[-1] * n for _ in range(n)]
@@ -239,19 +236,3 @@ class ConnectFourGameState(GameState):
     def copy(self) -> ConnectFourGameState:
         """Return a copy of self"""
         return ConnectFourGameState(self.n, self)
-
-
-class ConnectFour(Game):
-    """A subclass of Game implementing Connect Four.
-
-    Instance Attributes:
-        - player1: Stores the Player object representing the player playing as 'X'.
-        - player2: Stores the Player object representing the player playing as 'O'.
-    """
-    # Private Instance Attributes
-    #   - game_state: Stores the current game state
-    _game_state: ConnectFourGameState
-
-    def copy(self) -> ConnectFour:
-        """Return a copy of self"""
-        return ConnectFour(self.player1.copy(), self.player2.copy(), self._game_state.copy())
