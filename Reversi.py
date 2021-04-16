@@ -35,14 +35,17 @@ class ReversiGameState(GameState):
         self.previous_move = None
         if game_state is None:
             self.board = [[-1] * n for _ in range(n)]
-            self.board[n // 2][n // 2] = 1
-            self.board[n // 2][n // 2 - 1] = 0
-            self.board[n // 2 - 1][n // 2] = 0
-            self.board[n // 2 - 1][n // 2 - 1] = 1
+            self.board[n // 2][n // 2] = 0
+            self.board[n // 2][n // 2 - 1] = 1
+            self.board[n // 2 - 1][n // 2] = 1
+            self.board[n // 2 - 1][n // 2 - 1] = 0
             self.turn = True
         else:
             self.board = copy.deepcopy(game_state.board)
             self.turn = game_state.turn
+            self.n = game_state.n
+            self.has_passed = game_state.has_passed
+            self.previous_move = game_state.previous_move
 
     def vector_representation(self) -> List[float]:
         """Return the flattened board"""
@@ -116,7 +119,7 @@ class ReversiGameState(GameState):
 
             return True
 
-        if not check_legal and self.is_legal(move):
+        if not check_legal or self.is_legal(move):
             self.previous_move = move
 
             possible_directions = {(1, 0), (-1, 0), (1, 1), (-1, 1), (1, -1), (-1, -1), (0, 1), (0, -1)}

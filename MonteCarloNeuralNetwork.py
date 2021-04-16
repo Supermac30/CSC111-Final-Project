@@ -133,18 +133,15 @@ class MonteCarloNeuralNetworkPlayer(Player):
 
     Instance Attributes:
         - game_tree: Holds the GameTree object the player uses to make decisions
-        - is_player1: Holds whether this player is player 1
     """
     game_tree: MonteCarloNeuralNetwork
-    is_player1: bool
 
     def __init__(self, start_state: GameState, neural_network: MLPClassifier,
-                 is_player1: bool, game_tree: MonteCarloNeuralNetwork = None, repeat: int = 50) -> None:
+                 game_tree: MonteCarloNeuralNetwork = None, repeat: int = 50) -> None:
         if game_tree is not None:
             self.game_tree = game_tree
         else:
             self.game_tree = MonteCarloNeuralNetwork(start_state, neural_network, repeat=repeat)
-        self.is_player1 = is_player1
 
     def choose_move(self) -> GameState:
         """Return the optimal move from the game state in self.game_tree.root
@@ -169,8 +166,8 @@ class MonteCarloNeuralNetworkPlayer(Player):
 
     def copy(self) -> MonteCarloNeuralNetworkPlayer:
         """Return a copy of self"""
-        return MonteCarloNeuralNetworkPlayer(self.game_tree.root, self.game_tree.neural_network,
-                                             self.is_player1, self.game_tree.copy())
+        return MonteCarloNeuralNetworkPlayer(self.game_tree.root,
+                                             self.game_tree.neural_network, self.game_tree.copy())
 
 
 class NeuralNetworkPlayer(Player):
@@ -225,11 +222,11 @@ def train_neural_network(game_state: Type[GameState], hidden_layer: Union[int, T
     if neural_net is None:
         neural_net = MLPClassifier(hidden_layer_sizes=hidden_layer, max_iter=2000)
 
-    # initializes the neural network arbitrarily
-    initial_x = [game_state().vector_representation(), game_state().vector_representation(),
-                 game_state().vector_representation()]
-    initial_y = [[-1], [0], [1]]
-    neural_net.fit(initial_x, initial_y)
+        # initializes the neural network arbitrarily
+        initial_x = [game_state().vector_representation(), game_state().vector_representation(),
+                     game_state().vector_representation()]
+        initial_y = [[-1], [0], [1]]
+        neural_net.fit(initial_x, initial_y)
 
     training = ([], [])
     for i in range(num_games):
@@ -349,17 +346,20 @@ if __name__ == "__main__":
         # save_neural_network(brain, "data/neural_networks/ConnectFourNeuralNetwork.txt")
 
         import Reversi
-        brain = train_neural_network(Reversi.ReversiGameState, (8, 8), repeat=200, num_games=100)
+        old_brain = load_neural_network("data/neural_networks/ReversiNeuralNetwork.txt")
+        brain = train_neural_network(Reversi.ReversiGameState, (8, 8), repeat=200, num_games=100, neural_net=old_brain)
         save_neural_network(brain, "data/neural_networks/ReversiNeuralNetwork.txt")
 
     else:
-        import TicTacToe
+        import Reversi
+        import GameGUI
+        from Player import RandomPlayer
         from MonteCarloSimulation import MonteCarloSimulationPlayer
-        start_state = TicTacToe.TicTacToeGameState()
-        brain = load_neural_network("data/neural_networks/TicTacToeNeuralNetwork.txt")
+        start_state = Reversi.ReversiGameState()
+        brain = load_neural_network("data/neural_networks/ReversiNeuralNetwork.txt")
         player1 = MonteCarloNeuralNetworkPlayer(start_state.copy(), brain, True)
         player1p = NeuralNetworkPlayer(start_state.copy(), brain, False)
-        player2 = MonteCarloSimulationPlayer(start_state.copy(), repeat=100)
+        player2 = RandomPlayer(start_state.copy(),)
 
-        game = Game(player2, player1p)
-        print(game.play_games(20))
+        game = Game(player1, player2)
+        print(GameGUI.display_game(game.play_game()[1]))

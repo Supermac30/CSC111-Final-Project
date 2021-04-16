@@ -31,6 +31,7 @@ class TicTacToeGameState(GameState):
         else:
             self.board = copy.deepcopy(game_state.board)
             self.turn = game_state.turn
+            self.previous_move = game_state.previous_move
 
     def vector_representation(self) -> List[float]:
         """Return the flattened board"""
@@ -57,7 +58,7 @@ class TicTacToeGameState(GameState):
             - 0 <= move[0] <= 3
             - 0 <= move[1] <= 3
         """
-        if not check_legal and self.is_legal(move):
+        if not check_legal or self.is_legal(move):
             self.previous_move = move
             if self.turn:
                 self.board[move[0]][move[1]] = 1

@@ -35,6 +35,8 @@ class ConnectFourGameState(GameState):
         else:
             self.board = copy.deepcopy(game_state.board)
             self.turn = game_state.turn
+            self.n = game_state.n
+            self.previous_move = game_state.previous_move
 
         self.n = n
 
@@ -60,7 +62,7 @@ class ConnectFourGameState(GameState):
         Preconditions:
             - 0 <= move <= self.n
         """
-        if not check_legal and self.is_legal(move):
+        if not check_legal or self.is_legal(move):
             self.previous_move = move
             if self.turn:
                 piece = 1
