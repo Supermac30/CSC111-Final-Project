@@ -1,0 +1,5 @@
+scipy==1.6.1
+numpy==1.20.1
+pygame==2.0.1
+python-ta==1.6.3
+sklearn==0.0
