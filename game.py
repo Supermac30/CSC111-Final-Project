@@ -190,12 +190,13 @@ class Game:
         new_state = self._start_state
         click_loc = None
 
-        while new_state.winner() is None:
+        has_quit = False
+        while not has_quit and new_state.winner() is None:
             previous_state = new_state
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    break
+                    has_quit = True
                 if event.type == pygame.MOUSEBUTTONUP:
                     click_loc = pygame.mouse.get_pos()
 

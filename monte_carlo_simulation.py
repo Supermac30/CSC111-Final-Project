@@ -92,9 +92,20 @@ class MonteCarloGameTree(GameTree):
         return explore
 
     def ucb(self, visits_parent: int) -> float:
-        """Use the upper confidence bound to give a value
-        representing to what extent a state is worth exploring."""
-        raise NotImplementedError
+        """A helper function returning the value used to check if a
+        state is worth exploring, given the number of times the parent was visited.
+
+        Uses the Upper Confidence Bound formula, as described here:
+        https://en.wikipedia.org/wiki/Monte_Carlo_tree_search#Exploration_and_exploitation
+        """
+        if self.visits == 0:
+            return float("inf")
+
+        exploitation_value = self.value / self.visits
+        exploration_value = self.exploration_parameter * \
+                            math.sqrt(math.log(visits_parent) / self.visits)
+
+        return exploration_value + exploitation_value
 
     def move_value(self) -> float:
         """Estimate the value of the root by simulating possible games in the simulation phase"""
@@ -161,22 +172,6 @@ class MonteCarloSimulationGameTree(MonteCarloGameTree):
                 return
 
         raise MoveNotLegalError(str(state.previous_move))
-
-    def ucb(self, visits_parent: int) -> float:
-        """A helper function returning the value used to check if a
-        state is worth exploring, given the number of times the parent was visited.
-
-        Uses the Upper Confidence Bound formula, as described here:
-        https://en.wikipedia.org/wiki/Monte_Carlo_tree_search#Exploration_and_exploitation
-        """
-        if self.visits == 0:
-            return float("inf")
-
-        exploitation_value = self.value / self.visits
-        exploration_value = self.exploration_parameter * \
-                            math.sqrt(math.log(visits_parent) / self.visits)
-
-        return exploration_value + exploitation_value
 
     def move_value(self) -> float:
         """"Play a game where players make random moves from self.

@@ -60,8 +60,13 @@ class ReversiGameState(GameState):
             vector.extend(row)
         return vector
 
-    def is_legal(self, move: Tuple[int, int]) -> bool:
+    def is_legal(self, move: Optional[Tuple[int, int]]) -> bool:
         """Returns whether move is legal from self"""
+        # Check if a pass is legal
+        if move is None:
+            legal_moves = self.legal_moves()
+            return len(legal_moves) == 1 and legal_moves[0].previous_move is None
+
         return self.is_legal_direction(move, (0, 0))
 
     def is_legal_direction(self, move: Tuple[int, int],
@@ -124,14 +129,16 @@ class ReversiGameState(GameState):
         check_legal can be set to False to save time.
 
         Preconditions:
-            - 0 <= move[0] <= self.n
-            - 0 <= move[1] <= self.n
+            - move is None or 0 <= move[0] <= self.n
+            - move is None or 0 <= move[1] <= self.n
         """
+        # Handle a pass
         if move is None:
             if self.has_passed:
                 return False
             self.has_passed = True
             self.turn = not self.turn
+            self.previous_move = None
 
             return True
 
@@ -315,7 +322,13 @@ class ReversiGameState(GameState):
         position = ((self.n * click_loc[1]) // h, (self.n * click_loc[0]) // w)
 
         new_game = ReversiGameState(self.n, self)
-        if new_game.make_move(position, False):
+
+        # Check if a pass is played
+        if self.is_legal(None):
+            new_game.make_move(None, False)
+            return new_game
+
+        if new_game.make_move(position, True):
             return new_game
         return None
 

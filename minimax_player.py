@@ -36,14 +36,19 @@ class MinimaxGameTree(GameTree):
         - value: Holds the value of the root state.
             This is None if the value has not been calculated yet.
         - children: Holds all subtrees of self connected to the root.
+        - heuristic_type: The value representing which heuristic is called
+            to evaluate the value of root if it is not terminal.
     """
     root: GameState
     value: Optional[float]
     children: list[MinimaxGameTree]
+    heuristic_type: int
 
-    def __init__(self, start_state: GameState, value: Optional[float] = None) -> None:
+    def __init__(self, start_state: GameState, value: Optional[float] = None,
+                 heuristic_type: int = 0) -> None:
         super().__init__(start_state)
         self.value = value
+        self.heuristic_type = heuristic_type
 
     def find_value(self, memoize: Dict[Tuple[int, str, float, float], float], depth: int = -1,
                    alpha: float = -float('inf'), beta: float = float('inf')) -> None:
@@ -78,7 +83,7 @@ class MinimaxGameTree(GameTree):
             return
 
         if depth == 0 or self.root.winner() is not None:
-            self.value = self.root.evaluate_position()
+            self.value = self.root.evaluate_position(self.heuristic_type)
             return
 
         self.expand_root()
@@ -152,8 +157,8 @@ class MinimaxGameTree(GameTree):
 
     def copy(self) -> MinimaxGameTree:
         """Return a copy of self"""
-        new_tree = MinimaxGameTree(self.root.copy(), self.value)
-        # The base case is when self has no children
+        new_tree = MinimaxGameTree(self.root.copy(), self.value, self.heuristic_type)
+        # Note that the base case is when self has no children
         new_tree.children = [child.copy() for child in self.children]
         return new_tree
 
@@ -170,14 +175,14 @@ class MinimaxPlayer(Player):
     depth: int
     memoize: dict[Tuple[int, str, float, float], float]
 
-    def __init__(self, start_state: GameState,
-                 game_tree: MinimaxGameTree = None, depth: int = -1) -> None:
+    def __init__(self, start_state: GameState, game_tree: MinimaxGameTree = None,
+                 depth: int = -1, heuristic_type: int = 0) -> None:
         self.depth = depth
         self.memoize = {}
         if game_tree is not None:
             self.game_tree = game_tree
         else:
-            self.game_tree = MinimaxGameTree(start_state)
+            self.game_tree = MinimaxGameTree(start_state, heuristic_type=heuristic_type)
 
     def choose_move(self) -> GameState:
         """Return the optimal move from the game state in self.game_tree.root

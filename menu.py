@@ -159,7 +159,7 @@ class Menu(tk.Frame):
         if self.choose_player1:
             self.choose_player1 = False
             self.player1_id = player_id
-            if self.game_state == reversi.ReversiGameState:
+            if self.game_state == reversi.ReversiGameState and player_id != 5:
                 self.choose_opening(True)
             elif player_id == 1:
                 self.choose_depth(True)
@@ -169,7 +169,7 @@ class Menu(tk.Frame):
                 self.create_player_menu()
         else:
             self.player2_id = player_id
-            if self.game_state == reversi.ReversiGameState:
+            if self.game_state == reversi.ReversiGameState and player_id != 5:
                 self.choose_opening(False)
             elif player_id == 1:
                 self.choose_depth(False)
@@ -272,20 +272,25 @@ class Menu(tk.Frame):
         """Use the inputs to return the player chosen"""
         start_state = self.game_state()
 
+        if is_player_1:
+            index = 0
+        else:
+            index = 1
+
         if player_id == 0:
             player = minimax_player.RandomPlayer(start_state.copy())
         elif player_id == 1:
-            player = minimax_player.MinimaxPlayer(start_state.copy(), depth=self.depth[0])
+            player = minimax_player.MinimaxPlayer(start_state.copy(), depth=self.depth[index])
         elif player_id == 2:
             player = monte_carlo_simulation.MonteCarloSimulationPlayer(
-                start_state.copy(), repeat=self.repetitions[0])
+                start_state.copy(), repeat=self.repetitions[index])
         elif player_id == 3:
             player = monte_carlo_neural_network.MonteCarloNeuralNetworkPlayer(
                 start_state.copy(),
                 neural_network,
-                repeat=self.repetitions[0]
+                repeat=self.repetitions[index]
             )
-        else:  # self.player_id == 4
+        else:
             player = monte_carlo_neural_network.NeuralNetworkPlayer(
                 start_state.copy(),
                 neural_network,
@@ -311,14 +316,28 @@ class Menu(tk.Frame):
         player2 = self.get_player(self.player2_id, neural_network, False)
 
         created_game = game.Game(player1, player2)
+        statistics_game = created_game.copy()
+
+        # Play the displayed game
         if self.player1_id == 5:
             history = created_game.play_with_human(True)[1]
         elif self.player2_id == 5:
             history = created_game.play_with_human(False)[1]
         else:
-            history = created_game.play_game(True)[1]
+            history = created_game.play_game(False)[1]
 
+        # Display the game
         game.display_game(history)
+
+        # If a human player is not chosen
+        if self.player1_id != 5 and self.player2_id != 5:
+            # Calculate Statistics
+            player_1_wins, player_2_wins = statistics_game.play_games(5)
+
+            # Display Statistics
+            self.title['text'] = 'In a simulation of 5 games: \nPlayer 1 won ' + \
+                                 str(player_1_wins) + ' times.\nPlayer 2 won ' + \
+                                 str(player_2_wins) + ' times.'
 
 
 if __name__ == '__main__':

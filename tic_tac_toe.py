@@ -211,7 +211,7 @@ class TicTacToeGameState(GameState):
         position = ((3 * click_loc[1]) // w, (3 * click_loc[0]) // h)
 
         new_game = TicTacToeGameState(self)
-        if new_game.make_move(position, False):
+        if new_game.make_move(position, True):
             return new_game
         return None
 

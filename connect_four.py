@@ -233,7 +233,7 @@ class ConnectFourGameState(GameState):
         position = (self.n * click_loc[0]) // w
 
         new_game = ConnectFourGameState(self.n, self)
-        if new_game.make_move(position, False):
+        if new_game.make_move(position, True):
             return new_game
         return None
 

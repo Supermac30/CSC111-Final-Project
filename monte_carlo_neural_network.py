@@ -5,7 +5,6 @@ This file is Copyright (c) 2020 Mark Bedaywi
 from __future__ import annotations
 import pickle
 import copy
-import math
 from typing import Optional, Type, Tuple, Union
 
 from sklearn.neural_network import MLPClassifier
@@ -30,8 +29,8 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
         - visits: Holds the number of times self has been simulated.
 
         - neural_network: Holds the MLPClassifier that takes in a state and returns two values.
-            The first is the predicted value of moving into the state. This is used in the MCST to
-                update the value of a state.
+            The first is the predicted value of moving into the state.
+                This is used in the MCST to update the value of a state.
             The second is the probability that a state should be explored.
                 This is used in the MCST to choose which nodes to explore.
     """
@@ -86,16 +85,6 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
                 return
 
         raise MoveNotLegalError(str(state.previous_move))
-
-    def ucb(self, visits_parent: int) -> float:
-        """Use the upper confidence bound to give a value
-        representing to what extent a state is worth exploring."""
-
-        exploitation_value = self.value / self.visits
-        exploration_value = self.exploration_parameter * \
-            (math.sqrt(visits_parent) / (1 + self.visits))
-
-        return exploitation_value + exploration_value
 
     def move_value(self) -> float:
         """Estimate the value of the root using the neural network.
@@ -218,8 +207,13 @@ class NeuralNetworkPlayer(Player):
         return best_move.root
 
     def state_value(self, state: GameState) -> float:
-        """Return the predicted value of the state from the neural network"""
-        return self.neural_network.predict([state.vector_representation()])[0]
+        """Return the probability of the state being winning from the neural network"""
+        prob_distribution = self.neural_network.predict_proba([state.vector_representation()])[0]
+        # The first value in prob_distribution is the probability of the value being -1
+        # and the second is the probability of the value being 1
+        if self.is_player1:
+            return prob_distribution[1]
+        return prob_distribution[0]
 
     def copy(self) -> NeuralNetworkPlayer:
         """Return a copy of self"""
@@ -351,36 +345,35 @@ def load_neural_network(file_name: str) -> MLPClassifier:
 
 
 if __name__ == "__main__":
-    import python_ta
-
     import tic_tac_toe
     import connect_four
     import reversi
 
-    python_ta.check_all(config={
-        'max-line-length': 100,
-        'disable': ['E1136']
-    })
+    # import python_ta
+    # python_ta.check_all(config={
+    #     'max-line-length': 100,
+    #     'disable': ['E1136']
+    # })
 
-    old_brain = load_neural_network("data/neural_networks/TicTacToeNeuralNetwork.txt")
-    brain = train_neural_network(
-        tic_tac_toe.TicTacToeGameState,
-        (6, 3),
-        repeat=300,
-        num_games=500,
-        neural_net=old_brain
-    )
-    save_neural_network(brain, "data/neural_networks/TicTacToeNeuralNetwork.txt")
+    # old_brain = load_neural_network("data/neural_networks/TicTacToeNeuralNetwork.txt")
+    # brain = train_neural_network(
+    #     tic_tac_toe.TicTacToeGameState,
+    #     (6, 3),
+    #     repeat=300,
+    #     num_games=500,
+    #     neural_net=old_brain
+    # )
+    # save_neural_network(brain, "data/neural_networks/TicTacToeNeuralNetwork.txt")
 
-    old_brain = load_neural_network("data/neural_networks/ConnectFourNeuralNetwork.txt")
-    brain = train_neural_network(
-        connect_four.ConnectFourGameState,
-        (6, 6),
-        repeat=100,
-        num_games=100,
-        neural_net=old_brain
-    )
-    save_neural_network(brain, "data/neural_networks/ConnectFourNeuralNetwork.txt")
+    # old_brain = load_neural_network("data/neural_networks/ConnectFourNeuralNetwork.txt")
+    # brain = train_neural_network(
+    #     connect_four.ConnectFourGameState,
+    #     (6, 6),
+    #     repeat=100,
+    #     num_games=100,
+    #     neural_net=old_brain
+    # )
+    # save_neural_network(brain, "data/neural_networks/ConnectFourNeuralNetwork.txt")
 
     old_brain = load_neural_network("data/neural_networks/ReversiNeuralNetwork.txt")
     brain = train_neural_network(
