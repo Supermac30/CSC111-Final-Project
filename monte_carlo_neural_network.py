@@ -45,7 +45,7 @@ class MonteCarloNeuralNetwork(MonteCarloGameTree):
     neural_network: MLPClassifier
 
     def __init__(self, start_state: GameState, neural_network: MLPClassifier,
-                 repeat: int = 40, exploration_parameter: float = 1.4142, value: float = 0) -> None:
+                 repeat: int = 200, exploration_parameter: float = 1.4142, value: float = 0) -> None:
         super().__init__(start_state, repeat=repeat,
                          exploration_parameter=exploration_parameter, value=value)
         self.neural_network = neural_network
@@ -167,7 +167,7 @@ class MonteCarloNeuralNetworkPlayer(Player):
     def copy(self) -> MonteCarloNeuralNetworkPlayer:
         """Return a copy of self"""
         return MonteCarloNeuralNetworkPlayer(
-            self.game_tree.root,
+            self.game_tree.root.copy(),
             self.game_tree.neural_network,
             self.game_tree.copy()
         )
@@ -197,13 +197,9 @@ class NeuralNetworkPlayer(Player):
         """Choose the optimal move as predicted by the trained neural network"""
         best_move = self.game_tree.children[0]
         for move in self.game_tree.children:
-            if self.is_player1:
-                if self.state_value(move.root) > self.state_value(best_move.root):
-                    best_move = move
-            else:
-                if self.state_value(move.root) < self.state_value(best_move.root):
-                    best_move = move
-
+            # probability of winning is maximised
+            if self.state_value(move.root) > self.state_value(best_move.root):
+                best_move = move
         return best_move.root
 
     def state_value(self, state: GameState) -> float:
@@ -239,9 +235,8 @@ def train_neural_network(game_state: Type[GameState], hidden_layer: Union[int, T
         neural_net.fit(initial_x, initial_y)
 
     training = ([], [])
-    for i in range(num_games):
+    for _ in range(num_games):
         training, neural_net = update_neural_network(game_state, neural_net, repeat, training)
-        print(i)
 
     return neural_net
 
@@ -263,7 +258,6 @@ def update_neural_network(game_state: Type[GameState], neural_net: MLPClassifier
 
     # play the game
     winner, history = set_up_game.play_game(False)
-    print(winner)
 
     # train the neural network
 
@@ -285,7 +279,6 @@ def update_neural_network(game_state: Type[GameState], neural_net: MLPClassifier
 
     if not is_better(game_state, neural_net, old_neural_net):
         return (x, y), old_neural_net
-    print("new is better")
     return (x, y), neural_net
 
 
@@ -297,7 +290,6 @@ def is_better(game_state: Type[GameState], neural_net_1: MLPClassifier,
 
     set_up_game = Game(player1, player2)
     num_wins_1 = set_up_game.play_games(num_games)[0]
-    print(num_wins_1)
     if num_wins_1 == 0:
         return False
 
@@ -306,7 +298,6 @@ def is_better(game_state: Type[GameState], neural_net_1: MLPClassifier,
 
     set_up_game = Game(player1, player2)
     num_wins_2 = set_up_game.play_games(num_games)[1]
-    print(num_wins_2)
 
     # Return whether neural_net1 won a majority of the 2 * num_games games
     return num_wins_1 + num_wins_2 > num_games
@@ -349,38 +340,42 @@ if __name__ == "__main__":
     import connect_four
     import reversi
 
+    # doctest.testmod()
     # import python_ta
     # python_ta.check_all(config={
     #     'max-line-length': 100,
     #     'disable': ['E1136']
     # })
 
-    # old_brain = load_neural_network("data/neural_networks/TicTacToeNeuralNetwork.txt")
-    # brain = train_neural_network(
-    #     tic_tac_toe.TicTacToeGameState,
-    #     (6, 3),
-    #     repeat=300,
-    #     num_games=500,
-    #     neural_net=old_brain
-    # )
-    # save_neural_network(brain, "data/neural_networks/TicTacToeNeuralNetwork.txt")
+    print("Training Tic Tac Toe")
+    old_brain = load_neural_network("data/neural_networks/TicTacToeNeuralNetwork.txt")
+    brain = train_neural_network(
+        tic_tac_toe.TicTacToeGameState,
+        (6, 3),
+        repeat=300,
+        num_games=10,
+        neural_net=old_brain
+    )
+    save_neural_network(brain, "data/neural_networks/TicTacToeNeuralNetwork.txt")
 
-    # old_brain = load_neural_network("data/neural_networks/ConnectFourNeuralNetwork.txt")
-    # brain = train_neural_network(
-    #     connect_four.ConnectFourGameState,
-    #     (6, 6),
-    #     repeat=100,
-    #     num_games=100,
-    #     neural_net=old_brain
-    # )
-    # save_neural_network(brain, "data/neural_networks/ConnectFourNeuralNetwork.txt")
+    print("Training Connect Four")
+    old_brain = load_neural_network("data/neural_networks/ConnectFourNeuralNetwork.txt")
+    brain = train_neural_network(
+        connect_four.ConnectFourGameState,
+        (6, 6),
+        repeat=100,
+        num_games=10,
+        neural_net=old_brain
+    )
+    save_neural_network(brain, "data/neural_networks/ConnectFourNeuralNetwork.txt")
 
+    print("Training Reversi")
     old_brain = load_neural_network("data/neural_networks/ReversiNeuralNetwork.txt")
     brain = train_neural_network(
         reversi.ReversiGameState,
         (8, 8),
         repeat=100,
-        num_games=100,
+        num_games=1,
         neural_net=old_brain
     )
     save_neural_network(brain, "data/neural_networks/ReversiNeuralNetwork.txt")

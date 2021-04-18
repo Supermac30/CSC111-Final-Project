@@ -208,7 +208,7 @@ class MinimaxPlayer(Player):
     def copy(self) -> MinimaxPlayer:
         """Return a copy of self"""
         return MinimaxPlayer(
-            self.game_tree.root,
+            self.game_tree.root.copy(),
             self.game_tree.copy(),
             self.depth
         )

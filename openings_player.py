@@ -158,9 +158,9 @@ class ReversiOpeningsPlayer(Player):
     def copy(self) -> ReversiOpeningsPlayer:
         """Return a copy of self"""
         return ReversiOpeningsPlayer(
-            self.start_state,
-            self.default_player,
-            self.game_tree
+            self.start_state.copy(),
+            self.default_player.copy(),
+            self.game_tree.copy()
         )
 
 

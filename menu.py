@@ -182,12 +182,12 @@ class Menu(tk.Frame):
         """Displays the menu where the user can choose whether
         the chosen player should use an opening book"""
         self.opening_buttons.append(tk.Button(self))
-        self.opening_buttons[0]['text'] = "Make Player use openings book"
+        self.opening_buttons[0]['text'] = "Make Player use an openings book"
         self.opening_buttons[0]['command'] = lambda: self.assign_opening(True, is_player_1)
         self.opening_buttons[0].pack(side='top')
 
         self.opening_buttons.append(tk.Button(self))
-        self.opening_buttons[1]['text'] = "Don't Make Player use openings book"
+        self.opening_buttons[1]['text'] = "Don't make Player use an openings book"
         self.opening_buttons[1]['command'] = lambda: self.assign_opening(False, is_player_1)
         self.opening_buttons[1].pack(side='top')
 

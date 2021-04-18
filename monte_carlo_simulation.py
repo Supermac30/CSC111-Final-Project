@@ -32,7 +32,7 @@ class MonteCarloGameTree(GameTree):
     repeat: int
     exploration_parameter: float
 
-    def __init__(self, start_state: GameState, repeat: int = 2000,
+    def __init__(self, start_state: GameState, repeat: int = 500,
                  exploration_parameter: float = 1.4142, value: float = 0) -> None:
         super().__init__(start_state)
         self.value = value
@@ -55,7 +55,6 @@ class MonteCarloGameTree(GameTree):
             # Exploration phase
             explore_state = self.select_child()
 
-            # We change the reward from 1 to 0 or 0 to 1, as the player changes
             reward = explore_state.monte_carlo_tree_search()
         else:
             # Expansion phase
@@ -76,6 +75,7 @@ class MonteCarloGameTree(GameTree):
         self.value += reward
         self.visits += 1
 
+        # We change the reward from 1 to 0 or 0 to 1, as the player changes
         return 1 - reward
 
     def select_child(self) -> MonteCarloGameTree:
@@ -245,7 +245,7 @@ class MonteCarloSimulationPlayer(Player):
 
     def copy(self) -> MonteCarloSimulationPlayer:
         """Return a copy of self"""
-        return MonteCarloSimulationPlayer(self.game_tree.root, self.game_tree.copy())
+        return MonteCarloSimulationPlayer(self.game_tree.root.copy(), self.game_tree.copy())
 
 
 if __name__ == '__main__':
